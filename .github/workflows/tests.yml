@@ -58,9 +58,9 @@ jobs:
             sleep 1
           done
           page=$(curl -sf http://127.0.0.1:8000/)
-          echo "$page" | grep -q "Omnivault"
+          grep -q "Omnivault" <<< "$page"
           profs=$(curl -sf http://127.0.0.1:8000/api/profiles)
-          echo "$profs" | grep -q '"Leitor"'
+          grep -q '"Leitor"' <<< "$profs"
           code=$(curl -s -o /dev/null -w "%{http_code}" -X POST -H "Origin: http://site-externo.example" http://127.0.0.1:8000/api/shutdown)
           test "$code" = "403"
           echo "OK: servidor no ar, perfil inicial criado, origem externa bloqueada"
