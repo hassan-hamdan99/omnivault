@@ -27,9 +27,9 @@ Primeira versão pública.
 ### Plataforma
 - PWA instalável (tela de início do iPad/celular); cache LRU de arquivos do Drive.
 - Instalação guiada no Windows (`setup.bat`) com atalho na Área de Trabalho
-  (`criar-atalho.bat`); `run.sh` para Linux/macOS.
-- Python 3.11, 3.12 e 3.13; testes automatizados (API + extração) em Windows e Linux (3.11–3.13) e
-  macOS (3.13) via GitHub Actions.
+  (`criar-atalho.bat`); `run.sh` para Linux (e macOS, experimental).
+- Python 3.11, 3.12 e 3.13; testes automatizados (API + extração) em Windows e Linux via
+  GitHub Actions. macOS: experimental (roda pelo `run.sh`, ainda fora do CI).
 
 ### Segurança
 - API restrita à mesma origem: sem CORS por padrão e chamadas de outras origens recusadas

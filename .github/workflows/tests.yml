@@ -16,15 +16,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        # macOS fica fora: as máquinas macOS do GitHub vivem sem capacidade e a fila cancela
+        # os jobs (ver Roadmap no README)
+        os: [ubuntu-latest, windows-latest]
         python: ["3.11", "3.12", "3.13"]
-        # macOS: uma versão só (máquinas macOS do GitHub são escassas e a fila cancelava jobs;
-        # o código é o mesmo, as outras versões já são cobertas no Linux/Windows)
-        exclude:
-          - os: macos-latest
-            python: "3.11"
-          - os: macos-latest
-            python: "3.12"
     steps:
       - uses: actions/checkout@v4
 
@@ -40,7 +35,6 @@ jobs:
         shell: bash
         run: |
           if [ "$RUNNER_OS" = "Linux" ]; then sudo apt-get update -qq && sudo apt-get install -y -qq p7zip-full
-          elif [ "$RUNNER_OS" = "macOS" ]; then brew install sevenzip
           else echo "Windows: 7-Zip já vem no runner"; fi
 
       - name: Dependências
@@ -49,7 +43,7 @@ jobs:
       - name: Testes (pytest)
         run: pytest tests -q
 
-      - name: Servidor sobe e responde (run.sh no Linux/macOS)
+      - name: Servidor sobe e responde (run.sh no Linux)
         shell: bash
         env:
           NO_BROWSER: "1"
