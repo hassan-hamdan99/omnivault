@@ -13,6 +13,7 @@ from dotenv import load_dotenv
 load_dotenv(Path(__file__).parent.parent / ".env")
 
 from drive_client import DriveClient
+import drive_client as drive_client_mod
 from extractor import (extract_cover, extract_cover_partial, extract_page, get_page_count,
                        extract_cover_path, extract_page_path, get_page_count_path,
                        get_page_count_partial)
@@ -191,12 +192,63 @@ def _get_cover(file_id: str, filename: str) -> bytes | None:
 def auth_status():
     return {"authenticated": drive.is_authenticated()}
 
+def _credentials_problem(data) -> str | None:
+    """None se `data` (JSON já lido) é uma credencial OAuth do tipo Desktop; senão, o motivo."""
+    if not isinstance(data, dict):
+        return "O arquivo não é uma credencial do Google."
+    if "web" in data and "installed" not in data:
+        return ("Essa credencial é do tipo \"Aplicativo da Web\". Crie um ID do cliente OAuth do tipo "
+                "\"App para computador (Desktop)\" e envie o JSON dele (passo 6 do guia).")
+    inst = data.get("installed")
+    if not isinstance(inst, dict) or not inst.get("client_id") or not inst.get("client_secret"):
+        return ("O arquivo não parece o JSON baixado do Google Cloud (falta \"installed\", "
+                "\"client_id\" ou \"client_secret\").")
+    return None
+
+def _onboarding(error: str | None = None, status: int = 200) -> HTMLResponse:
+    import html as _html
+    err = f'<div class="err">{_html.escape(error)}</div>' if error else ""
+    return HTMLResponse(_ONBOARDING_HTML.replace("{{ERR}}", err), status_code=status)
+
+def _is_local_client(request: Request) -> bool:
+    host = (request.client.host if request.client else "") or ""
+    return host in ("127.0.0.1", "::1", "localhost") or host.startswith("::ffff:127.")
+
 @app.get("/auth/login")
 def auth_login():
+    if drive_client_mod.CREDENTIALS_FILE.exists():
+        try:
+            problem = _credentials_problem(json.loads(
+                drive_client_mod.CREDENTIALS_FILE.read_text(encoding="utf-8-sig")))
+        except Exception:
+            problem = "O credentials.json atual não é um JSON válido."
+        if problem:
+            return _onboarding("Problema no credentials.json atual: " + problem)
     try:
         return RedirectResponse(drive.get_auth_url())
     except FileNotFoundError:
-        return HTMLResponse(_ONBOARDING_HTML, status_code=200)
+        return _onboarding()
+
+@app.post("/auth/credentials")
+async def auth_credentials_upload(request: Request, file: UploadFile):
+    """Recebe o JSON do cliente OAuth pela página de configuração e salva em
+    credentials/credentials.json. Só no próprio PC (o login também só completa lá)."""
+    if not _is_local_client(request):
+        return _onboarding("Envie o arquivo pelo navegador do PC onde o Omnivault roda "
+                           "(http://localhost:8000).", 403)
+    raw = await file.read(64 * 1024 + 1)
+    if len(raw) > 64 * 1024:
+        return _onboarding("Arquivo grande demais para ser uma credencial do Google.", 400)
+    try:
+        data = json.loads(raw.decode("utf-8-sig"))
+    except Exception:
+        return _onboarding("O arquivo escolhido não é um JSON válido.", 400)
+    problem = _credentials_problem(data)
+    if problem:
+        return _onboarding(problem, 400)
+    atomic_write(drive_client_mod.CREDENTIALS_FILE, json.dumps(data, indent=2))
+    print("[auth] credentials.json salvo pela página de configuração")
+    return RedirectResponse("/auth/login", status_code=303)
 
 _ONBOARDING_HTML = """<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -212,23 +264,34 @@ _ONBOARDING_HTML = """<!doctype html><html lang="pt-BR"><head><meta charset="utf
  code{background:#0F1115;border:1px solid #303A49;border-radius:5px;
    padding:.1rem .4rem;color:#D9A44A;font-size:.85em}
  a{color:#E3643B} .b{margin-top:1.4rem}
- .btn{display:inline-block;background:#E3643B;color:#0F1115;text-decoration:none;
-   font-weight:700;padding:.6rem 1.2rem;border-radius:8px}
+ .btn{display:inline-block;background:#E3643B;color:#0F1115;text-decoration:none;border:0;
+   font:inherit;font-weight:700;padding:.6rem 1.2rem;border-radius:8px;cursor:pointer}
+ .btn2{background:transparent;color:#B3BCC9;border:1px solid #303A49}
+ .up{background:#0F1115;border:1px dashed #303A49;border-radius:12px;padding:1rem 1.1rem;margin:1rem 0}
+ .up p{margin:.2rem 0 .7rem} input[type=file]{color:#B3BCC9;font:inherit;font-size:.85rem;max-width:100%}
+ .err{background:#3a1d18;border:1px solid #E3643B;color:#F5D0C5;border-radius:10px;
+   padding:.7rem .9rem;font-size:.88rem;margin:.8rem 0}
 </style></head><body><div class="card">
- <h1>Falta o credentials.json do Google Drive</h1>
- <p>O acesso ao Google Drive precisa de credenciais OAuth. Só é necessário para
- fontes do Drive: pastas <strong>locais</strong> já funcionam sem isso.</p>
+ <h1>Conectar o Google Drive</h1>
+ <p>O acesso ao Google Drive precisa de uma credencial OAuth sua (gratuita, feita uma vez só).
+ Só é necessário para fontes do Drive: pastas <strong>locais</strong> já funcionam sem isso.</p>
+ {{ERR}}
  <ol>
-  <li>Abra o <a href="https://console.cloud.google.com" target="_blank">Google Cloud Console</a> e crie um projeto.</li>
+  <li>Abra o <a href="https://console.cloud.google.com" target="_blank" rel="noopener">Google Cloud Console</a> e crie um projeto.</li>
   <li>Ative a <strong>Google Drive API</strong>.</li>
   <li>Configure a <strong>tela de consentimento</strong> (tipo Externo) e <strong>publique o app</strong>
    (ou adicione seu e-mail em <em>Usuários de teste</em>).</li>
   <li><em>Credenciais → Criar credenciais → ID do cliente OAuth</em>, tipo <strong>App para computador (Desktop)</strong>.</li>
-  <li>Baixe o JSON e salve como <code>credentials/credentials.json</code> (sem reiniciar).</li>
-  <li>Volte e clique em Conectar de novo, <strong>neste PC</strong>.</li>
+  <li>Clique em <strong>Fazer download do JSON</strong> e envie o arquivo aqui embaixo (não precisa renomear).</li>
  </ol>
- <p>Passo a passo completo: <code>docs/GOOGLE_DRIVE.md</code>.</p>
- <div class="b"><a class="btn" href="/">← Voltar ao Omnivault</a></div>
+ <form class="up" method="post" action="/auth/credentials" enctype="multipart/form-data">
+  <p><strong>Enviar a credencial</strong> (o arquivo <code>client_secret_….json</code> baixado):</p>
+  <input type="file" name="file" accept=".json,application/json" required>
+  <div class="b" style="margin-top:.9rem"><button class="btn" type="submit">Enviar e conectar →</button></div>
+ </form>
+ <p>Passo a passo com todos os cliques: <a href="https://github.com/hassan-hamdan99/omnivault/blob/main/docs/GOOGLE_DRIVE.md" target="_blank" rel="noopener">guia do Google Drive</a>
+ (também em <code>docs/GOOGLE_DRIVE.md</code>).</p>
+ <div class="b"><a class="btn btn2" href="/">← Voltar ao Omnivault</a></div>
 </div></body></html>"""
 
 @app.get("/auth/callback")

@@ -3,6 +3,14 @@
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/);
 versões seguem [SemVer](https://semver.org/lang/pt-BR/).
 
+## [Não lançado]
+
+### Google Drive
+- Enviar a credencial pelo próprio app: a página "Conectar o Google Drive" tem
+  **Escolher arquivo** para o JSON baixado do Google Cloud (sem renomear/mover). O app
+  confere se é do tipo Desktop, explica o erro se for do tipo Web e já abre o login.
+  Aceito só no navegador do PC onde o servidor roda.
+
 ## [1.0.0] — 2026-11-04
 
 Primeira versão pública.

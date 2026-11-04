@@ -170,8 +170,15 @@ Ponto de entrada FastAPI. Destaques:
   memória); Drive usa parcial/bytes.
 
 ### Onboarding
-- `GET /auth/login` sem `credentials.json` → devolve uma **página HTML amigável**
-  (`_ONBOARDING_HTML`) explicando como configurar, em vez de um traceback.
+- `GET /auth/login` sem `credentials.json` (ou com um inválido, ex. cliente do tipo **Web**)
+  → devolve uma **página HTML amigável** (`_ONBOARDING_HTML`) com os passos e um formulário
+  de envio do JSON, em vez de um traceback.
+- `POST /auth/credentials` (multipart `file`) recebe o JSON baixado do Google Cloud, valida
+  (`_credentials_problem`: precisa de `installed.client_id`/`client_secret`; `web` é
+  recusado com explicação; aceita BOM; máx. 64 KB) e grava com `atomic_write` em
+  `credentials/credentials.json`, redirecionando (303) para `/auth/login`. **Só aceita
+  cliente local** (`_is_local_client`: 127.0.0.1/::1), além do filtro de mesma origem:
+  ninguém na rede troca a credencial.
 
 (Todos os endpoints estão listados em §14.)
 
@@ -351,6 +358,7 @@ Aplica-se a `profiles.json`, `profiles/<id>/reading_state.json`, `config.json`,
 | GET | `/auth/login` | Redireciona ao OAuth (ou página de onboarding) |
 | GET | `/auth/callback` | Troca `code`→token |
 | POST | `/auth/logout` | Remove o token |
+| POST | `/auth/credentials` | Envia o `credentials.json` (só no próprio PC) |
 | GET | `/api/netinfo` | `{ip, port}` da LAN (rodapé da Início) |
 | POST | `/api/shutdown` | Encerra o servidor |
 

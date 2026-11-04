@@ -243,10 +243,10 @@ está em **[docs/GOOGLE_DRIVE.md](docs/GOOGLE_DRIVE.md)**. Resumo:
 2. Configure a **tela de consentimento** (tipo **Externo**) e **publique o app** (ou
    adicione seu e-mail como usuário de teste; nesse caso o login expira a cada 7 dias).
 3. Crie um **ID do cliente OAuth** do tipo **App para computador (Desktop)** e baixe o JSON.
-4. Salve-o como **`credentials/credentials.json`**.
-5. **No PC**, em **Configurações → Google Drive → Conectar**, faça login e autorize a
-   leitura.
-6. Adicione pastas colando o link em **Pastas → + Drive**.
+4. **No PC**, em **Configurações → Google Drive → Conectar**, escolha o JSON baixado em
+   **Enviar a credencial** (não precisa renomear nem mover; o app confere o tipo e salva em
+   `credentials/credentials.json`). Em seguida, faça login e autorize a leitura.
+5. Adicione pastas colando o link em **Pastas → + Drive**.
 
 ---
 

@@ -16,7 +16,7 @@ Guia passo a passo para criar o "app" no Google Cloud (gratuito) que permite ao 
 4. [Configurar a tela de consentimento](#4-configurar-a-tela-de-consentimento)
 5. [Escolher quem pode usar (teste × publicado)](#5-escolher-quem-pode-usar-teste--publicado)
 6. [Criar a credencial (ID do cliente OAuth)](#6-criar-a-credencial-id-do-cliente-oauth)
-7. [Colocar o `credentials.json` no Omnivault](#7-colocar-o-credentialsjson-no-omnivault)
+7. [Enviar a credencial ao Omnivault](#7-enviar-a-credencial-ao-omnivault)
 8. [Conectar a conta no app](#8-conectar-a-conta-no-app)
 9. [Adicionar pastas do Drive](#9-adicionar-pastas-do-drive)
 10. [Problemas comuns](#10-problemas-comuns)
@@ -125,7 +125,24 @@ O app nasce em modo **Teste** (Testing). Você tem duas opções:
 
 ---
 
-## 7. Colocar o `credentials.json` no Omnivault
+## 7. Enviar a credencial ao Omnivault
+
+**Jeito fácil (recomendado), pelo próprio app, no PC:**
+
+1. Abra o Omnivault **no PC** (`http://localhost:8000`) → **Configurações → Google Drive →
+   Conectar** (ou **Drive offline · Conectar** na tela Início).
+2. Aparece a página **Conectar o Google Drive**. Em **Enviar a credencial**, clique em
+   **Escolher arquivo** e selecione o JSON baixado no passo 6 (o nome é algo como
+   `client_secret_1234-abc.apps.googleusercontent.com.json`; **não precisa renomear**).
+3. Clique em **Enviar e conectar →**. O Omnivault confere se a credencial é do tipo
+   **Desktop**, salva em `credentials/credentials.json` e já abre o login do Google:
+   continue no [passo 8](#8-conectar-a-conta-no-app), a partir do item 3.
+
+Se o arquivo estiver errado (credencial do tipo *Aplicativo da Web*, JSON de outra coisa), a
+página explica o problema e nada é salvo. Por segurança, o envio só é aceito no navegador
+do próprio PC, não pelo iPad/celular.
+
+**Jeito manual (alternativa):**
 
 1. Renomeie o arquivo baixado (algo como `client_secret_1234-abc.apps.googleusercontent.com.json`)
    para **`credentials.json`**.
@@ -185,7 +202,8 @@ navegáveis normalmente; HQs sem extensão no nome (ex.: `Capítulo 01`) são de
 
 | Sintoma | Causa provável → solução |
 |---|---|
-| Página "Falta o credentials.json" ao conectar | O arquivo não está em `credentials/credentials.json` (ou ficou `.json.json`). Veja o passo 7. |
+| Página "Conectar o Google Drive" ao clicar em Conectar | Ainda não há credencial: envie o JSON por ela (passo 7). |
+| "Essa credencial é do tipo Aplicativo da Web" | O cliente OAuth foi criado como Web. Crie um do tipo **App para computador** (passo 6) e envie o JSON novo. |
 | `Erro 403: access_denied` | App em **Teste** e seu e-mail não está em **Usuários de teste**, ou você logou com outra conta. Passo 5. |
 | `Erro 400: redirect_uri_mismatch` | A credencial não é **Desktop**. Crie um cliente do tipo *App para computador* (passo 6). |
 | Login abre no iPad e dá erro de "não foi possível conectar" | O login precisa ser feito no **PC** (passo 8). |

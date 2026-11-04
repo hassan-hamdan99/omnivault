@@ -1,5 +1,6 @@
 """Testes de ponta a ponta da API (FastAPI TestClient), numa instalação isolada
 (OMNIVAULT_HOME temporário, ver conftest.py). Não usam rede nem Google Drive."""
+import json
 import pytest
 
 JPEG = b"\xff\xd8"
@@ -192,4 +193,43 @@ def test_static_shell(client, path):
 def test_drive_without_credentials_shows_onboarding(client):
     assert client.get("/auth/status").json()["authenticated"] is False
     r = client.get("/auth/login", follow_redirects=False)
-    assert r.status_code == 200 and "credentials.json" in r.text
+    assert r.status_code == 200 and 'action="/auth/credentials"' in r.text
+
+
+_DESKTOP = {"installed": {"client_id": "123-abc.apps.googleusercontent.com", "client_secret": "x",
+                          "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+                          "token_uri": "https://oauth2.googleapis.com/token",
+                          "redirect_uris": ["http://localhost"]}}
+
+
+def _send(client, payload: bytes):
+    return client.post("/auth/credentials", files={"file": ("client_secret_1.json", payload, "application/json")},
+                       follow_redirects=False)
+
+
+def test_credentials_upload_only_from_this_pc(client):
+    import drive_client
+    r = _send(client, json.dumps(_DESKTOP).encode())  # TestClient não é 127.0.0.1
+    assert r.status_code == 403 and not drive_client.CREDENTIALS_FILE.exists()
+
+
+def test_credentials_upload_validates_and_saves(client, monkeypatch):
+    import main, drive_client
+    monkeypatch.setattr(main, "_is_local_client", lambda request: True)
+    f = drive_client.CREDENTIALS_FILE
+    try:
+        r = _send(client, b"isto nao e json")
+        assert r.status_code == 400 and "JSON" in r.text and not f.exists()
+        r = _send(client, json.dumps({"web": _DESKTOP["installed"]}).encode())
+        assert r.status_code == 400 and "Desktop" in r.text and not f.exists()
+        r = _send(client, "﻿".encode("utf-8") + json.dumps(_DESKTOP).encode())  # com BOM também vale
+        assert r.status_code == 303 and r.headers["location"] == "/auth/login"
+        assert json.loads(f.read_text(encoding="utf-8")) == _DESKTOP
+        r = client.get("/auth/login", follow_redirects=False)
+        assert r.status_code in (302, 307) and r.headers["location"].startswith("https://accounts.google.com/")
+        # credencial Web colocada à mão: o login explica em vez de mandar pro erro do Google
+        f.write_text(json.dumps({"web": _DESKTOP["installed"]}), encoding="utf-8")
+        r = client.get("/auth/login", follow_redirects=False)
+        assert r.status_code == 200 and "Desktop" in r.text
+    finally:
+        f.unlink(missing_ok=True)
