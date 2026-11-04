@@ -109,7 +109,7 @@ continua no outro, na página exata.
 | Componente | Observação |
 |---|---|
 | **Windows 10/11, Linux ou macOS** | o PC que guarda/acessa as HQs e fica ligado enquanto você lê |
-| **Python 3.11, 3.12 ou 3.13** | testado automaticamente nas três versões, em Windows, Linux e macOS |
+| **Python 3.11, 3.12 ou 3.13** | testado automaticamente nas três versões (Windows e Linux; macOS com 3.13) |
 | **7-Zip** (Windows) ou **p7zip/unrar** (Linux/macOS) | só para abrir **CBR/RAR/CB7** |
 | **Conta Google** + projeto gratuito no Google Cloud | só se for usar o **Google Drive** ([guia](docs/GOOGLE_DRIVE.md)) |
 | Node / npm / banco de dados | **não precisa** |
@@ -470,8 +470,8 @@ pytest tests -q
 
 Os testes criam uma instalação temporária isolada (`OMNIVAULT_HOME`) com uma biblioteca
 de exemplo (CBZ, PDF e CB7, se houver 7-Zip): **nunca tocam** em `data/`, `cache/` ou
-`credentials/`. A cada push, o GitHub Actions roda tudo em Windows, Linux e macOS com
-Python 3.11–3.13 e ainda sobe o servidor de verdade (pelo `run.sh` no Linux/macOS).
+`credentials/`. A cada push, o GitHub Actions roda tudo em Windows e Linux com
+Python 3.11–3.13 (e no macOS com 3.13) e ainda sobe o servidor de verdade (pelo `run.sh` no Linux/macOS).
 
 Histórico de versões: [CHANGELOG.md](CHANGELOG.md).
 

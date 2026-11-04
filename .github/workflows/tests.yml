@@ -18,6 +18,13 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
         python: ["3.11", "3.12", "3.13"]
+        # macOS: uma versão só (máquinas macOS do GitHub são escassas e a fila cancelava jobs;
+        # o código é o mesmo, as outras versões já são cobertas no Linux/Windows)
+        exclude:
+          - os: macos-latest
+            python: "3.11"
+          - os: macos-latest
+            python: "3.12"
     steps:
       - uses: actions/checkout@v4
 
