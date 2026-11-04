@@ -12,7 +12,9 @@ from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload
 
-_ROOT            = Path(__file__).parent.parent
+# Pasta dos dados (data/, cache/, credentials/). Padrão: raiz do projeto.
+# OMNIVAULT_HOME permite guardar em outro lugar (e isola os testes).
+_ROOT            = Path(os.getenv("OMNIVAULT_HOME") or Path(__file__).parent.parent)
 CREDENTIALS_FILE = _ROOT / "credentials/credentials.json"
 TOKEN_FILE       = _ROOT / "credentials/token.json"
 SCOPES           = ["https://www.googleapis.com/auth/drive.readonly"]

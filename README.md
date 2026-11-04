@@ -14,6 +14,13 @@
   Self-hosted · sem banco de dados · sem build · FastAPI + HTML/JS puro · PWA
 </p>
 
+<p align="center">
+  <a href="https://github.com/hassan-hamdan99/omnivault/actions/workflows/tests.yml"><img src="https://github.com/hassan-hamdan99/omnivault/actions/workflows/tests.yml/badge.svg" alt="Testes"></a>
+  <a href="https://github.com/hassan-hamdan99/omnivault/releases"><img src="https://img.shields.io/github/v/release/hassan-hamdan99/omnivault" alt="Versão"></a>
+  <img src="https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13-blue" alt="Python 3.11–3.13">
+  <img src="https://img.shields.io/badge/licen%C3%A7a-MIT-green" alt="Licença MIT">
+</p>
+
 ---
 
 ## Índice
@@ -102,7 +109,7 @@ continua no outro, na página exata.
 | Componente | Observação |
 |---|---|
 | **Windows 10/11, Linux ou macOS** | o PC que guarda/acessa as HQs e fica ligado enquanto você lê |
-| **Python 3.11 ou 3.12** | ⚠️ não use 3.13+ por enquanto: as versões fixadas de Pillow/PyMuPDF não têm pacote pronto |
+| **Python 3.11, 3.12 ou 3.13** | testado automaticamente nas três versões, em Windows, Linux e macOS |
 | **7-Zip** (Windows) ou **p7zip/unrar** (Linux/macOS) | só para abrir **CBR/RAR/CB7** |
 | **Conta Google** + projeto gratuito no Google Cloud | só se for usar o **Google Drive** ([guia](docs/GOOGLE_DRIVE.md)) |
 | Node / npm / banco de dados | **não precisa** |
@@ -116,12 +123,12 @@ Espaço em disco: o programa ocupa poucos MB. O cache de HQs do Drive cresce at�
 
 ### Windows (passo a passo)
 
-1. **Instale o Python 3.12** em <https://www.python.org/downloads/windows/>
+1. **Instale o Python** (3.11, 3.12 ou 3.13) em <https://www.python.org/downloads/windows/>
    (*Windows installer 64-bit*).
    - Na primeira tela do instalador, **marque "Add python.exe to PATH"** e clique em
      **Install Now**.
    - Para conferir, abra o **Prompt de Comando** e rode `python --version`; deve aparecer
-     `Python 3.12.x`.
+     `Python 3.1x.x`.
 2. **(Só para CBR/RAR)** instale o **[7-Zip](https://www.7-zip.org)**, versão 64-bit, no
    local padrão. O Omnivault encontra `C:\Program Files\7-Zip\7z.exe` sozinho (WinRAR
    também serve).
@@ -339,8 +346,9 @@ CACHE_MAX_GB=15     # Tamanho máximo do cache de HQs baixadas do Drive (GB)
 HOST=0.0.0.0        # 0.0.0.0 = acessível na rede (PC + iPad); 127.0.0.1 = só esta máquina
 PORT=8000           # Porta do servidor (também define o redirect do OAuth)
 EXTRACT_WORKERS=4   # Extrações pesadas simultâneas (7-Zip/PyMuPDF); diminua em PCs fracos
+# OMNIVAULT_HOME=D:\OmnivaultDados  # onde ficam data/, cache/ e credentials/ (padrão: pasta do projeto)
 NO_BROWSER=0        # 1 = não abrir o navegador ao iniciar
-# CORS_ORIGINS=*    # Origens CORS (o uso normal não precisa)
+# CORS_ORIGINS=     # Origens extras que podem chamar a API (o app NÃO precisa; ver §13)
 # OAUTH_REDIRECT=http://localhost:8000/auth/callback  # derivado de PORT por padrão
 # DRIVE_FOLDERS=Nome:ID,Nome:ID   # legado: pastas do Drive na 1ª execução
 ```
@@ -382,7 +390,8 @@ No iPad, feche e abra o app para pegar a versão nova.
 → Reinstale o Python marcando **"Add python.exe to PATH"**, ou reabra o terminal após instalar.
 
 **Erro ao instalar dependências (Pillow/PyMuPDF compilando, `wheel` falhando)**
-→ Provavelmente Python 3.13+. Instale o **3.12** e rode `setup.bat` de novo.
+→ Use Python **3.11, 3.12 ou 3.13** (64-bit). Versões mais novas podem ainda não ter
+pacote pronto dessas bibliotecas.
 
 **O iPad/celular não abre o endereço**
 → Confira, nessa ordem:
@@ -420,6 +429,10 @@ desconexão semanal) estão em [docs/GOOGLE_DRIVE.md → Problemas comuns](docs/
 - Credenciais, token, estado de leitura e cache ficam **só na sua máquina**. `.env`,
   `credentials/credentials.json`, `credentials/token.json`, `data/` e `cache/` estão no
   `.gitignore`: **nunca suba esses arquivos**.
+- **Sites de terceiros não acessam a API:** o servidor recusa chamadas vindas de outra
+  origem e não envia cabeçalhos CORS. Um site aberto no seu navegador não consegue ler suas
+  pastas, seu histórico nem desligar o servidor. (O app em si, no PC ou no iPad, é sempre
+  mesma origem e não é afetado.)
 - **Não há login nem senha** no app: qualquer aparelho na sua rede consegue abrir. Perfis
   separam dados, não protegem acesso. Use em rede de confiança (casa), **não exponha a
   porta à internet** (nada de redirecionamento de porta no roteador) e, em rede
@@ -437,7 +450,7 @@ run.sh              inicia o servidor (Linux/macOS)
 backend/            servidor FastAPI (main.py) + Drive, arquivos locais, extração, perfis, estado
 static/             index.html (biblioteca), reader.html (leitor), sw.js, manifest, fontes, ícones
 docs/               guias (Google Drive)
-tests/              testes básicos (pytest)
+tests/              testes da API e da extração (pytest; rodam em CI no GitHub Actions)
 credentials/        credentials.json + token.json (seus; ignorados pelo git)
 data/               configuração, perfis e estado de leitura (gerado; ignorado pelo git)
 cache/              capas, páginas e HQs do Drive (gerado; ignorado pelo git)
@@ -451,11 +464,16 @@ Arquitetura, endpoints, formatos de dados e decisões de design:
 ## 15. Testes
 
 ```bash
-pip install pytest
-pytest tests/ -q
+pip install -r backend/requirements.txt -r requirements-dev.txt
+pytest tests -q
 ```
 
-Os testes só leem; não gravam em `data/` nem `cache/`.
+Os testes criam uma instalação temporária isolada (`OMNIVAULT_HOME`) com uma biblioteca
+de exemplo (CBZ, PDF e CB7, se houver 7-Zip): **nunca tocam** em `data/`, `cache/` ou
+`credentials/`. A cada push, o GitHub Actions roda tudo em Windows, Linux e macOS com
+Python 3.11–3.13 e ainda sobe o servidor de verdade (pelo `run.sh` no Linux/macOS).
+
+Histórico de versões: [CHANGELOG.md](CHANGELOG.md).
 
 ## 16. Licença
 

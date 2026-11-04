@@ -23,19 +23,34 @@ import reading_manager as rdg
 import profiles as prof
 import local_client as lc
 
-app = FastAPI(title="Omnivault")
+APP_VERSION = "1.0.0"
+app = FastAPI(title="Omnivault", version=APP_VERSION)
 
-# Origens CORS configuráveis (default "*"). O acesso normal PC/iPhone é same-origin
-# e nem usa CORS; restrinja via CORS_ORIGINS="https://a,https://b" se quiser.
-_cors = os.getenv("CORS_ORIGINS", "*")
-_cors_origins = [o.strip() for o in _cors.split(",") if o.strip()] or ["*"]
-app.add_middleware(CORSMiddleware, allow_origins=_cors_origins, allow_methods=["*"], allow_headers=["*"])
+# ── Mesma origem ──────────────────────────────────────────────────────────────
+# O app (PC, iPad, PWA) carrega a página e chama a API no MESMO endereço, então não
+# precisa de CORS. Sem CORS, um site qualquer aberto num navegador da rede não lê
+# as respostas da API; e o filtro abaixo recusa chamadas vindas de outra origem
+# (ex.: um site tentando POST /api/shutdown). CORS_ORIGINS libera origens extras.
+_cors_origins = [o.strip().rstrip("/") for o in os.getenv("CORS_ORIGINS", "").split(",") if o.strip()]
+if _cors_origins:
+    app.add_middleware(CORSMiddleware, allow_origins=_cors_origins, allow_methods=["*"], allow_headers=["*"])
+_ALLOW_ANY_ORIGIN = "*" in _cors_origins
+
+@app.middleware("http")
+async def _same_origin_only(request, call_next):
+    origin = request.headers.get("origin")
+    if origin and not _ALLOW_ANY_ORIGIN and request.url.path.startswith(("/api/", "/auth/")):
+        from urllib.parse import urlsplit
+        same = urlsplit(origin).netloc.lower() == (request.headers.get("host") or "").lower()
+        if not same and origin.rstrip("/") not in _cors_origins:
+            return Response("Origem não permitida", status_code=403)
+    return await call_next(request)
 
 # Limita extrações pesadas simultâneas (7-Zip/PyMuPDF) para não saturar a máquina.
 _EXTRACT_SEM = threading.Semaphore(int(os.getenv("EXTRACT_WORKERS", "4")))
 
 # Cache persistente de contagem de páginas (alimenta o tooltip de hover).
-_PC_FILE = Path(__file__).parent.parent / "data/page_counts.json"
+_PC_FILE = Path(os.getenv("OMNIVAULT_HOME") or Path(__file__).parent.parent) / "data/page_counts.json"
 _pc_lock = threading.Lock()
 try:
     _PAGE_COUNTS = json.loads(_PC_FILE.read_text(encoding="utf-8"))
@@ -51,7 +66,7 @@ def _pc_set(fid: str, n) -> None:
         except Exception:
             pass
 
-_ROOT       = Path(__file__).parent.parent
+_ROOT       = Path(os.getenv("OMNIVAULT_HOME") or Path(__file__).parent.parent)
 COVER_CACHE = _ROOT / "cache/covers"
 MAIN_COVERS = _ROOT / "cache/main_covers"
 # Capas definidas manualmente pelo utilizador: cópia durável fora de cache/,

@@ -15,11 +15,15 @@ import zipfile
 from pathlib import Path
 from PIL import Image
 
+# PyMuPDF: nome atual "pymupdf" (o antigo "fitz" está obsoleto no 2.x).
+try:
+    import pymupdf as fitz
+except ImportError:      # PyMuPDF antigo
+    import fitz
 # Silencia MuPDF
 try:
-    import fitz as _f
-    _f.TOOLS.mupdf_display_errors(False)
-    _f.TOOLS.mupdf_display_warnings(False)
+    fitz.TOOLS.mupdf_display_errors(False)
+    fitz.TOOLS.mupdf_display_warnings(False)
 except Exception:
     pass
 
@@ -53,7 +57,7 @@ def _find_tool(names: list[str], win_paths: list[str]) -> str | None:
     return None
 
 _7Z = _find_tool(
-    ["7z", "7z.exe", "7za", "7za.exe"],
+    ["7z", "7z.exe", "7zz", "7za", "7za.exe"],
     [r"C:\Program Files\7-Zip\7z.exe",
      r"C:\Program Files (x86)\7-Zip\7z.exe"]
 )
@@ -222,7 +226,6 @@ def _page_cbz(data: bytes, page_num: int) -> bytes | None:
 # ── PDF ───────────────────────────────────────────────────────────────────────
 
 def _cover_pdf(data: bytes) -> bytes | None:
-    import fitz
     doc = fitz.open(stream=data, filetype="pdf")
     if doc.page_count == 0:
         return None
@@ -230,7 +233,6 @@ def _cover_pdf(data: bytes) -> bytes | None:
     return _to_jpeg(pix.tobytes("png"))
 
 def _page_pdf(data: bytes, page_num: int) -> bytes | None:
-    import fitz
     doc = fitz.open(stream=data, filetype="pdf")
     if page_num >= doc.page_count:
         return None
@@ -245,7 +247,7 @@ def _page_pdf(data: bytes, page_num: int) -> bytes | None:
 def _dispatch_cover(data: bytes, ext: str) -> bytes | None:
     if ext in (".cbz", ".zip"):
         return _cover_cbz(data)
-    elif ext in (".cbr", ".rar"):
+    elif ext in (".cbr", ".rar", ".cb7"):
         return _cover_cbr(data)
     elif ext == ".pdf":
         return _cover_pdf(data)
@@ -263,7 +265,7 @@ def _dispatch_cover(data: bytes, ext: str) -> bytes | None:
 def _dispatch_page(data: bytes, ext: str, page_num: int) -> bytes | None:
     if ext in (".cbz", ".zip"):
         return _page_cbz(data, page_num)
-    elif ext in (".cbr", ".rar"):
+    elif ext in (".cbr", ".rar", ".cb7"):
         return _page_cbr(data, page_num)
     elif ext == ".pdf":
         return _page_pdf(data, page_num)
@@ -325,7 +327,7 @@ def extract_cover_partial(file_id: str, filename: str, drive_client) -> bytes | 
     try:
         if ext in (".cbz", ".zip"):
             return _cover_cbz_partial(file_id, filename, drive_client)
-        elif ext in (".cbr", ".rar"):
+        elif ext in (".cbr", ".rar", ".cb7"):
             # CBR não beneficia de Range (RAR não tem índice no fim).
             # skip_cache=True: não guarda em cache/comics/ só para extrair a capa.
             # O ficheiro completo só é cacheado quando o utilizador abre para ler.
@@ -362,7 +364,7 @@ def get_page_count(data: bytes, filename: str) -> int:
         if ext in (".cbz", ".zip"):
             with zipfile.ZipFile(io.BytesIO(data)) as z:
                 return len(_sorted_images(z.namelist()))
-        elif ext in (".cbr", ".rar"):
+        elif ext in (".cbr", ".rar", ".cb7"):
             if not _7Z and not _UNRAR:
                 return 0
             with tempfile.TemporaryDirectory() as tmp:
@@ -370,7 +372,6 @@ def get_page_count(data: bytes, filename: str) -> int:
                 cbr.write_bytes(data)
                 return len(_list_archive(str(cbr)))
         elif ext == ".pdf":
-            import fitz
             return fitz.open(stream=data, filetype="pdf").page_count
     except Exception as e:
         print(f"[extractor] Erro na contagem de '{filename}': {e}")
@@ -401,7 +402,7 @@ def extract_cover_path(path: str) -> bytes | None:
     try:
         if ext in (".cbz", ".zip"):
             return _cover_cbz_path(path)
-        if ext in (".cbr", ".rar"):
+        if ext in (".cbr", ".rar", ".cb7"):
             imgs = _list_archive(path)
             if not imgs:
                 return None
@@ -410,7 +411,6 @@ def extract_cover_path(path: str) -> bytes | None:
                       or _extract_nth_full(path, 0, tmp)
                 return _to_jpeg(raw) if raw else None
         if ext == ".pdf":
-            import fitz
             doc = fitz.open(path)
             if doc.page_count == 0:
                 return None
@@ -425,7 +425,7 @@ def extract_page_path(path: str, page_num: int) -> bytes | None:
     try:
         if ext in (".cbz", ".zip"):
             return _page_cbz_path(path, page_num)
-        if ext in (".cbr", ".rar"):
+        if ext in (".cbr", ".rar", ".cb7"):
             imgs = _list_archive(path)
             if page_num >= len(imgs):
                 return None
@@ -434,7 +434,6 @@ def extract_page_path(path: str, page_num: int) -> bytes | None:
                       or _extract_nth_full(path, page_num, tmp)
                 return _to_jpeg(raw, quality=92) if raw else None
         if ext == ".pdf":
-            import fitz
             doc = fitz.open(path)
             if page_num >= doc.page_count:
                 return None
@@ -450,10 +449,9 @@ def get_page_count_path(path: str) -> int:
         if ext in (".cbz", ".zip"):
             with zipfile.ZipFile(path) as z:
                 return len(_sorted_images(z.namelist()))
-        if ext in (".cbr", ".rar"):
+        if ext in (".cbr", ".rar", ".cb7"):
             return len(_list_archive(path))
         if ext == ".pdf":
-            import fitz
             return fitz.open(path).page_count
     except Exception as e:
         print(f"[extractor] count_path '{path}': {e}")
@@ -627,7 +625,6 @@ def get_page_count_partial(file_id: str, filename: str, dc) -> int | None:
         end = min(2 * 1024 * 1024, size) - 1
         chunk = dc.download_range(file_id, 0, end)
         try:
-            import fitz
             doc = fitz.open(stream=chunk, filetype="pdf")
             if doc.page_count > 0:
                 return doc.page_count

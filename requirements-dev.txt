@@ -1,0 +1,3 @@
+# Só para desenvolvimento/testes (o app em si usa backend/requirements.txt)
+pytest>=8
+httpx>=0.27

@@ -3,11 +3,13 @@ Local filesystem client — reads CBZ/CBR/PDF directly from disk.
 No download needed; covers are fast (direct file read).
 Local file IDs: "local_{md5[:16]}" — persisted in data/local_registry.json
 """
-import hashlib, json, sys, threading
+import hashlib, json, os, sys, threading
 from pathlib import Path
 from storage import atomic_write
 
-_ROOT          = Path(__file__).parent.parent
+# Pasta dos dados (data/, cache/, credentials/). Padrão: raiz do projeto.
+# OMNIVAULT_HOME permite guardar em outro lugar (e isola os testes).
+_ROOT          = Path(os.getenv("OMNIVAULT_HOME") or Path(__file__).parent.parent)
 REGISTRY_FILE  = _ROOT / "data/local_registry.json"
 COMIC_EXTS     = {".cbz", ".cbr", ".pdf", ".zip", ".rar", ".cb7"}
 _LOCK          = threading.RLock()

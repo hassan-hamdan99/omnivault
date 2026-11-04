@@ -10,12 +10,13 @@ IMPORTANTE: as paginas de leitura (cache/covers/pages_*/) ficam intactas.
 Uso:  python backend/shrink_covers.py
 """
 import io
+import os
 import sys
 from pathlib import Path
 
 from PIL import Image
 
-_ROOT = Path(__file__).parent.parent
+_ROOT = Path(os.getenv("OMNIVAULT_HOME") or Path(__file__).parent.parent)
 DIRS = [_ROOT / "cache/covers", _ROOT / "cache/main_covers"]
 SKIP_UNDER = 120 * 1024   # ja e miniatura
 

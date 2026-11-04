@@ -11,11 +11,13 @@ Migração (1ª execução): o data/reading_state.json antigo (de antes dos perf
 vira o estado do perfil inicial e o original fica guardado como
 reading_state.pre-perfis.json.
 """
-import json, re, shutil, threading, time, uuid, functools
+import json, os, re, shutil, threading, time, uuid, functools
 from pathlib import Path
 from storage import atomic_write
 
-_ROOT         = Path(__file__).parent.parent
+# Pasta dos dados (data/, cache/, credentials/). Padrão: raiz do projeto.
+# OMNIVAULT_HOME permite guardar em outro lugar (e isola os testes).
+_ROOT         = Path(os.getenv("OMNIVAULT_HOME") or Path(__file__).parent.parent)
 PROFILES_FILE = _ROOT / "data/profiles.json"
 PROFILES_DIR  = _ROOT / "data/profiles"
 LEGACY_STATE  = _ROOT / "data/reading_state.json"

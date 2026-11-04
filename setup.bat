@@ -10,7 +10,7 @@ echo.
 python --version > nul 2>&1
 if errorlevel 1 (
     echo [ERRO] Python não encontrado.
-    echo Instale o Python 3.11 ou 3.12 em https://python.org
+    echo Instale o Python 3.11, 3.12 ou 3.13 em https://python.org
     echo e marque "Add python.exe to PATH" no instalador.
     pause
     exit /b 1
@@ -21,7 +21,7 @@ cd /d "%~dp0backend"
 python -m pip install -r requirements.txt --quiet
 if errorlevel 1 (
     echo [ERRO] Falha na instalação das dependências.
-    echo Confira se o Python é 3.11 ou 3.12 ^(3.13+ ainda não é suportado^).
+    echo Confira se o Python é 3.11, 3.12 ou 3.13 ^(64-bit^).
     pause
     exit /b 1
 )

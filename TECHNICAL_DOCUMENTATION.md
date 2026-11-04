@@ -144,7 +144,14 @@ Ponto de entrada FastAPI. Destaques:
 
 ### Inicialização / configuração
 - `load_dotenv()` carrega `.env`.
-- **CORS** configurável por `CORS_ORIGINS` (padrão `*`).
+- **Mesma origem**: sem CORS por padrão; o middleware `_same_origin_only` responde
+  **403** a chamadas `/api/*` e `/auth/*` cujo header `Origin` não bate com o `Host`
+  (bloqueia sites de terceiros: CSRF em `/api/shutdown`, leitura de `/api/local/browse`,
+  etc.). `CORS_ORIGINS` libera origens extras (e liga o `CORSMiddleware` para elas).
+- **`OMNIVAULT_HOME`**: raiz de `data/`, `cache/` e `credentials/` (padrão: pasta do
+  projeto). Os testes usam uma pasta temporária por aqui. `.env` e `static/` continuam
+  na pasta do código.
+- `APP_VERSION` (= versão do release, exposta no OpenAPI).
 - `_EXTRACT_SEM = Semaphore(EXTRACT_WORKERS)` — limita extrações pesadas
   (7-Zip/PyMuPDF) simultâneas (padrão 4).
 - `_INFO_CACHE` — cache em memória de `drive.get_file_info` (evita chamada à API do
@@ -454,7 +461,8 @@ Aplica-se a `profiles.json`, `profiles/<id>/reading_state.json`, `config.json`,
 | `CACHE_MAX_GB` | `15` | Limite do cache de arquivos completos |
 | `EXTRACT_WORKERS` | `4` | Extrações pesadas simultâneas |
 | `NO_BROWSER` | `0` | `1` = não abrir o navegador ao iniciar |
-| `CORS_ORIGINS` | `*` | Origens CORS (lista separada por vírgula) |
+| `CORS_ORIGINS` | *(vazio)* | Origens extras autorizadas (lista separada por vírgula); `*` desliga o filtro de origem |
+| `OMNIVAULT_HOME` | pasta do projeto | Onde ficam `data/`, `cache/` e `credentials/` |
 | `OAUTH_REDIRECT` | `http://localhost:{PORT}/auth/callback` | Redirect do OAuth |
 | `DRIVE_FOLDERS` | — | Migração legada de pastas Drive na 1ª execução |
 
@@ -540,6 +548,11 @@ Perfil ativo do aparelho (`localStorage cs_profile`) + wrapper de `fetch` que in
   (conteúdo além dos 2 MB) → fallback de download completo.
 - **CBR não tem índice no início**: capa e contagem exigem o arquivo completo (sem
   caminho parcial barato).
+- **PyMuPDF travado em 1.26.x**: a partir da 1.27 (MuPDF 1.27+) o PDF truncado dos
+  2 MB iniciais é recusado ("Invalid number of pages") e capa/contagem do Drive caem no
+  download COMPLETO. Medido com PDFs reais: 1.24–1.26.7 abrem, 1.27–2.1 recusam. Trava em
+  `tests/test_extractor.py`.
+- **CB7** passa pelo mesmo caminho do CBR (7-Zip abre os dois); requer 7-Zip (`7z`/`7zz`).
 - **Token do Drive expira a cada ~1 h**: `is_authenticated()` renova sozinho com o
   refresh token (além do `_load_token` e antes de `download_range`), então aparelhos que
   abrem o app horas depois continuam conectados.
