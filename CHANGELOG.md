@@ -3,7 +3,7 @@
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/);
 versões seguem [SemVer](https://semver.org/lang/pt-BR/).
 
-## [Não lançado]
+## [1.1.0] — 2026-11-04
 
 ### Google Drive
 - Enviar a credencial pelo próprio app: a página "Conectar o Google Drive" tem

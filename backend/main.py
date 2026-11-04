@@ -24,7 +24,7 @@ import reading_manager as rdg
 import profiles as prof
 import local_client as lc
 
-APP_VERSION = "1.0.0"
+APP_VERSION = "1.1.0"
 app = FastAPI(title="Omnivault", version=APP_VERSION)
 
 # ── Mesma origem ──────────────────────────────────────────────────────────────
