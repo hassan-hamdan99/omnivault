@@ -2663,7 +2663,7 @@ function showList(lid){
   loadCovers(grid);
 }
 async function rmFromList(lid,fid){
-  await fetch(`/api/lists/${lid}/comics/${fid}`,{method:'DELETE'});
+  await fetch(`/api/lists/${lid}/comics/${encodeURIComponent(fid)}`,{method:'DELETE'});
   userLists=await api('/api/lists');renderListsView();
 }
 
@@ -2848,7 +2848,7 @@ document.getElementById('ctx-list-sub').addEventListener('mouseleave',()=>{
 async function ctxAddToList(lid){
   if(!ctxTarget)return;
   const inList=userLists[lid]?.comics?.some(c=>c.id===ctxTarget.id);
-  if(inList){await fetch(`/api/lists/${lid}/comics/${ctxTarget.id}`,{method:'DELETE'});}
+  if(inList){await fetch(`/api/lists/${lid}/comics/${encodeURIComponent(ctxTarget.id)}`,{method:'DELETE'});}
   else{await fetch(`/api/lists/${lid}/comics`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({file_id:ctxTarget.id,name:ctxTarget.name,is_folder:ctxTarget.isFolder||false})});}
   userLists=await api('/api/lists');hideCtx();
   if(!ctxTarget?.isFolder)renderContent(allFolders,sortC(allComics));

@@ -533,7 +533,7 @@ def _cover_resp(request: Request, path: Path):
         return Response(status_code=304, headers=headers)
     return Response(path.read_bytes(), media_type="image/jpeg", headers=headers)
 
-@app.get("/api/folders/{folder_id}/cover")
+@app.get("/api/folders/{folder_id:path}/cover")
 def folder_cover(folder_id: str, request: Request):
     from pathlib import Path
 
@@ -595,7 +595,7 @@ def folder_cover(folder_id: str, request: Request):
         return _cover_resp(request, cp)
     raise HTTPException(404)
 
-@app.post("/api/folders/{folder_id}/cover/refresh")
+@app.post("/api/folders/{folder_id:path}/cover/refresh")
 def folder_cover_refresh(folder_id: str):
     """
     Força re-geração da capa de uma pasta:
@@ -659,7 +659,7 @@ def folder_cover_refresh(folder_id: str):
     raise HTTPException(404)
 
 
-@app.post("/api/folders/{folder_id}/cover/upload")
+@app.post("/api/folders/{folder_id:path}/cover/upload")
 async def folder_cover_upload(folder_id: str, file: UploadFile):
     """
     Define manualmente a capa de uma pasta com uma imagem carregada pelo utilizador.
@@ -868,7 +868,7 @@ def add_to_list(list_id: str, b: ListAdd, pid: str = Depends(_profile)):
     rdg.add_to_list(pid, list_id, b.file_id, b.name, b.is_folder)
     return {"ok": True}
 
-@app.delete("/api/lists/{list_id}/comics/{file_id}")
+@app.delete("/api/lists/{list_id}/comics/{file_id:path}")
 def remove_from_list(list_id: str, file_id: str, pid: str = Depends(_profile)):
     rdg.remove_from_list(pid, list_id, file_id)
     return {"ok": True}

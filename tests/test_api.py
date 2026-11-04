@@ -99,9 +99,27 @@ def test_cover_info_and_pages(client, comics, name, pages):
         assert pg.status_code == 200 and pg.content[:2] == JPEG
 
 
+def _q(folder_path) -> str:
+    """Como o front: encodeURIComponent do id (no Linux/macOS o id tem '/')."""
+    from urllib.parse import quote
+    return quote(str(folder_path), safe="")
+
+
 def test_folder_cover(client, library):
-    r = client.get(f"/api/folders/{library / 'Série Teste'}/cover")
+    r = client.get(f"/api/folders/{_q(library / 'Série Teste')}/cover")
     assert r.status_code == 200 and r.content[:2] == JPEG
+    assert client.post(f"/api/folders/{_q(library / 'Série Teste')}/cover/refresh").status_code == 200
+
+
+def test_local_folder_in_list(client, library, H):
+    """Pasta local numa lista: o id é um caminho (com '\' ou '/')."""
+    lid = client.post("/api/lists", headers=H, json={"name": "Pastas"}).json()["id"]
+    fid = str(library / "Série Teste")
+    client.post(f"/api/lists/{lid}/comics", headers=H, json={"file_id": fid, "name": "Série Teste", "is_folder": True})
+    assert any(c["id"] == fid for c in client.get("/api/lists", headers=H).json()[lid]["comics"])
+    assert client.delete(f"/api/lists/{lid}/comics/{_q(fid)}", headers=H).status_code == 200
+    assert not client.get("/api/lists", headers=H).json()[lid]["comics"]
+    client.delete(f"/api/lists/{lid}", headers=H)
 
 
 def test_local_search(client, library):
