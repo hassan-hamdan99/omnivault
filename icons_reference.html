@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Omnivault — Referência de Ícones (novo conjunto)</title>
+<!--
+  ============================================================================
+  REFERÊNCIA DURÁVEL DOS 23 ÍCONES NOVOS (multicolor / filled)
+  ----------------------------------------------------------------------------
+  Conjunto gerado em ago/2026 para casar com a identidade visual do app.
+  Paleta fixa: creme #EDE4D3 · azul-ardósia #46617A · laranja #E3643B ·
+  dourado #E8A13A · recorte escuro #171B22 (assume fundo dark).
+
+  Como usar: cada <svg> abaixo tem viewBox="0 0 24 24" e cores embutidas
+  (NÃO usam currentColor). Para inserir no app, copie o <svg> inteiro e
+  ajuste width/height conforme o local (a sidebar usa 15px).
+
+  STATUS DE INTEGRAÇÃO:
+   - [FEITO] Sidebar (menu lateral): home, library, progress-clock, check,
+     queue-list, download, lists-shield, gear.
+   - [PENDENTE] Barra do reader, ações (buscar/editar/filtrar/ordenar/etc.),
+     e o "long tail" que ainda usa o set antigo de traço (ver ic()/ICONS em
+     static/index.html). Faltam ~15 ícones sem equivalente novo p/ switch total.
+
+  Abra este arquivo no navegador para pré-visualizar. Não é servido pelo app
+  (fica fora de static/), é só material de referência para o dev.
+  ============================================================================
+-->
+<style>
+  :root{color-scheme:dark}
+  body{margin:0;background:#0F1115;color:#EDE4D3;
+    font-family:system-ui,Segoe UI,Roboto,sans-serif;padding:2rem}
+  h1{font-size:1.15rem;font-weight:700;margin:0 0 .25rem}
+  .sub{color:#8a94a3;font-size:.85rem;margin:0 0 1.75rem;line-height:1.5}
+  .sub code{color:#E3643B}
+  h2{font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;
+    color:#8a94a3;margin:2rem 0 .9rem;border-bottom:1px solid #1f2530;padding-bottom:.4rem}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:.6rem}
+  .cell{background:#1F2530;border:1px solid #2a323f;border-radius:10px;
+    display:flex;flex-direction:column;align-items:center;gap:.55rem;
+    padding:1rem .5rem .7rem}
+  .cell svg{width:44px;height:44px}
+  .nm{font-size:.72rem;color:#c4ccd6;font-family:ui-monospace,Consolas,monospace}
+  .row2{display:flex;gap:1rem;align-items:center;margin-top:.4rem}
+  .row2 svg{width:15px;height:15px}     /* tamanho real usado na sidebar */
+  .row2 .lbl{font-size:.62rem;color:#6b7480}
+</style>
+</head>
+<body>
+<h1>Omnivault — Ícones novos (23)</h1>
+<p class="sub">Conjunto multicolor/filled. Paleta: creme <code>#EDE4D3</code> ·
+azul <code>#46617A</code> · laranja <code>#E3643B</code> · dourado <code>#E8A13A</code>.
+Cada ícone mostra a pré-visualização a 44px; o rótulo é o nome-chave.
+A sidebar já usa 8 destes a 15px.</p>
+
+<h2>Navegação principal</h2>
+<div class="grid">
+
+  <div class="cell">
+    <!-- home -->
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <path fill="#E3643B" d="M3 10.5 12 3l9 7.5v8.25A2.25 2.25 0 0 1 18.75 21h-4.5v-5.25h-4.5V21h-4.5A2.25 2.25 0 0 1 3 18.75V10.5Z"/>
+      <path fill="#EDE4D3" d="M5.25 11.25 12 5.63l6.75 5.62v7.5h-2.25v-6h-9v6H5.25v-7.5Z"/>
+      <path fill="#EDE4D3" d="M10.13 21v-4.5h3.74V21h-3.74Z"/>
+    </svg>
+    <span class="nm">home</span>
+  </div>
+
+  <div class="cell">
+    <!-- library -->
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <path fill="#E3643B" d="M3.5 5.25A1.75 1.75 0 0 1 5.25 3.5h2.5v16.75h-2.5a1.75 1.75 0 0 1-1.75-1.75V5.25Z"/>
+      <path fill="#46617A" d="M8.75 3.5h3.5v16.75h-3.5V3.5Z"/>
+      <path fill="#E8A13A" d="M14 3.5h2.75A1.75 1.75 0 0 1 18.5 5.25v13.25A1.75 1.75 0 0 1 16.75 20.25H14V3.5Z"/>
+      <path fill="#EDE4D3" d="M17.5 3.5h2.25A1.75 1.75 0 0 1 21.5 5.25v13.5A1.75 1.75 0 0 1 19.75 20.5H17.5V3.5Z"/>
+      <path fill="#171B22" d="M18.75 6.25h1.25v11.5h-1.25V6.25Z"/>
+    </svg>
+    <span class="nm">library</span>
+  </div>
+
+  <div class="cell">
+    <!-- progress-clock -->
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="12" cy="12" r="8.5" fill="none" stroke="#EDE4D3" stroke-width="2.25"/>
+      <path fill="#46617A" d="M12 4.5a7.5 7.5 0 0 1 7.5 7.5H12V4.5Z"/>
+      <path fill="#E8A13A" d="M12 5.75h1.5v6.5H12z"/>
+      <path fill="#E3643B" d="m12.5 11.5 4.2 2.43-.75 1.3-4.2-2.43.75-1.3Z"/>
+      <circle cx="12" cy="12" r="1.5" fill="#EDE4D3"/>
+    </svg>
+    <span class="nm">progress-clock</span>
+  </div>
+
+  <div class="cell">
+    <!-- check -->
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <path fill="#46617A" d="m9.25 18.25-5.5-5.5 2.12-2.12 3.38 3.37 8.88-8.87 2.12 2.12-11 11Z"/>
+      <path fill="#EDE4D3" d="m9.25 16.13-4.44-4.44 1.06-1.06 3.38 3.37 8.88-8.87 1.06 1.06-9.94 9.94Z"/>
+    </svg>
+    <span class="nm">check</span>
+  </div>
+
+  <div class="cell">
+    <!-- queue-list -->
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <rect x="3" y="5" width="3" height="2.5" rx="1" fill="#E3643B"/>
+      <rect x="8" y="5" width="13" height="2.5" rx="1.25" fill="#EDE4D3"/>
+      <rect x="3" y="10.75" width="3" height="2.5" rx="1" fill="#46617A"/>
+      <rect x="8" y="10.75" width="13" height="2.5" rx="1.25" fill="#EDE4D3"/>
+      <rect x="3" y="16.5" width="3" height="2.5" rx="1" fill="#E8A13A"/>
+      <rect x="8" y="16.5" width="13" height="2.5" rx="1.25" fill="#EDE4D3"/>
+    </svg>
+    <span class="nm">queue-list</span>
+  </div>
+
+  <div class="cell">
+    <!-- download -->
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <path fill="#46617A" d="M10.5 3h3v9.13l2.72-2.72 2.12 2.12L12 17.87l-6.34-6.34 2.12-2.12 2.72 2.72V3Z"/>
+      <path fill="#EDE4D3" d="M4 16.5h3v2h10v-2h3v3.25A1.25 1.25 0 0 1 18.75 21h-13.5A1.25 1.25 0 0 1 4 19.75V16.5Z"/>
+      <path fill="#EDE4D3" d="M11 3h2v9.5h-2V3Z"/>
+    </svg>
+    <span class="nm">download</span>
+  </div>
+
+  <div class="cell">
+    <!-- lists-shield -->
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <path fill="#EDE4D3" d="M12 2.75 20 5.5v6.15c0 4.9-3.03 8.15-8 9.6-4.97-1.45-8-4.7-8-9.6V5.5l8-2.75Z"/>
+      <path fill="#46617A" d="M12 5.1 17.5 7v4.55c0 3.45-1.94 5.92-5.5 7.15-3.56-1.23-5.5-3.7-5.5-7.15V7L12 5.1Z"/>
+      <path fill="#EDE4D3" d="M9.25 9h5.5v1.5h-5.5V9Zm0 3h5.5v1.5h-5.5V12Z"/>
+    </svg>
+    <span class="nm">lists-shield</span>
+  </div>
+
+</div>
+
+<h2>Ações &amp; controles</h2>
+<div class="grid">
+
+  <div class="cell">
+    <!-- search -->
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="10.5" cy="10.5" r="6.75" fill="none" stroke="#EDE4D3" stroke-width="2.5"/>
+      <path fill="#EDE4D3" d="m15.25 13.48 5.5 5.5-1.77 1.77-5.5-5.5 1.77-1.77Z"/>
+      <circle cx="10.5" cy="10.5" r="3.75" fill="#171B22"/>
+    </svg>
+    <span class="nm">search</span>
+  </div>
+
+  <div class="cell">
+    <!-- add-plus -->
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="12" cy="12" r="8.5" fill="none" stroke="#EDE4D3" stroke-width="2.25"/>
+      <path fill="#E3643B" d="M10.75 6.5h2.5v4.25h4.25v2.5h-4.25v4.25h-2.5v-4.25H6.5v-2.5h4.25V6.5Z"/>
+    </svg>
+    <span class="nm">add-plus</span>
+  </div>
+
+  <div class="cell">
+    <!-- edit-pencil -->
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <path fill="#46617A" d="m4.25 16.9 1.4-5.1L15.9 1.55a1.75 1.75 0 0 1 2.47 0l4.08 4.08a1.75 1.75 0 0 1 0 2.47L12.2 18.35l-5.1 1.4-2.85-.01v-2.84Z"/>
+      <path fill="#EDE4D3" d="m6.1 16.8 1.18-4.3 9.68-9.68 2.23 2.23-9.68 9.68-4.3 1.18.89-2.23Z"/>
+      <path fill="#E3643B" d="m17.18 2.82 2.23 2.23 2.42-2.42a1.75 1.75 0 0 0-2.23-2.23l-2.42 2.42Z"/>
+      <path fill="#EDE4D3" d="m4.25 16.9-.01 2.85 2.86-.01-2.85-2.84Z"/>
+    </svg>
+    <span class="nm">edit-pencil</span>
+  </div>
+
+  <div class="cell">
+    <!-- trash -->
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <path fill="#EDE4D3" d="M5.5 6.5h13l-.75 14H6.25l-.75-14Z"/>
+      <path fill="#E3643B" d="M4 4.5h16v2H4v-2Zm5-2h6l1 2H8l1-2Z"/>
+      <path fill="#46617A" d="M8.5 9h2v8.5h-2V9Zm5 0h2v8.5h-2V9Z"/>
+    </svg>
+    <span class="nm">trash</span>
+  </div>
+
+  <div class="cell">
+    <!-- filter -->
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <path fill="#EDE4D3" d="M3 4.5h18l-6.75 8v6.25L9.75 21v-8.5L3 4.5Z"/>
+      <path fill="#46617A" d="M6.15 6.5h11.7l-4.6 5.45v5.65l-1.5.75v-7.05L6.15 6.5Z"/>
+    </svg>
+    <span class="nm">filter</span>
+  </div>
+
+  <div class="cell">
+    <!-- sort -->
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <path fill="#E3643B" d="M7.25 3h2.5v14.25l3.25-3.25 1.77 1.77L8.5 22l-6.27-6.23L4 14l3.25 3.25V3Z"/>
+      <path fill="#EDE4D3" d="M15.25 21h-2.5V6.75L9.5 10l-1.77-1.77L14 2l6.27 6.23L18.5 10l-3.25-3.25V21Z"/>
+    </svg>
+    <span class="nm">sort</span>
+  </div>
+
+  <div class="cell">
+    <!-- grid-view -->
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <rect x="3" y="3" width="7.5" height="7.5" rx="1.25" fill="#E3643B"/>
+      <rect x="13.5" y="3" width="7.5" height="7.5" rx="1.25" fill="#EDE4D3"/>
+      <rect x="3" y="13.5" width="7.5" height="7.5" rx="1.25" fill="#EDE4D3"/>
+      <rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.25" fill="#EDE4D3"/>
+    </svg>
+    <span class="nm">grid-view</span>
+  </div>
+
+  <div class="cell">
+    <!-- more-dots -->
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="12" cy="5" r="2" fill="#EDE4D3"/>
+      <circle cx="12" cy="12" r="2" fill="#EDE4D3"/>
+      <circle cx="12" cy="19" r="2" fill="#EDE4D3"/>
+    </svg>
+    <span class="nm">more-dots</span>
+  </div>
+
+</div>
+
+<h2>Reader</h2>
+<div class="grid">
+
+  <div class="cell">
+    <!-- book-open -->
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <path fill="#EDE4D3" d="M3 4.5c3.4-.8 6.35-.05 9 2.25 2.65-2.3 5.6-3.05 9-2.25v14c-3.4-.8-6.35-.05-9 2.25-2.65-2.3-5.6-3.05-9-2.25v-14Z"/>
+      <path fill="#46617A" d="M4.75 6.35c2.25-.35 4.3.25 6.25 1.8v9.95c-1.95-1.55-4-2.15-6.25-1.8V6.35Zm14.5 0c-2.25-.35-4.3.25-6.25 1.8v9.95c1.95-1.55 4-2.15 6.25-1.8V6.35Z"/>
+      <path fill="#E3643B" d="M11 8.15h2v10.25h-2V8.15Z"/>
+    </svg>
+    <span class="nm">book-open</span>
+  </div>
+
+  <div class="cell">
+    <!-- bookmark -->
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <path fill="#EDE4D3" d="M6 3h12a1.75 1.75 0 0 1 1.75 1.75v16.5L12 17.1l-7.75 4.15V4.75A1.75 1.75 0 0 1 6 3Z"/>
+      <path fill="#E8A13A" d="M7.75 5h8.5v12.75L12 15.1l-4.25 2.65V5Z"/>
+    </svg>
+    <span class="nm">bookmark</span>
+  </div>
+
+  <div class="cell">
+    <!-- notes -->
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <path fill="#EDE4D3" d="M5 3h14a2 2 0 0 1 2 2v14l-4 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"/>
+      <path fill="#46617A" d="M6 5h12v11.5l-2.5 1.25H6V5Z"/>
+      <rect x="7.5" y="7.25" width="8.5" height="1.5" rx=".75" fill="#EDE4D3"/>
+      <rect x="7.5" y="10.75" width="6.5" height="1.5" rx=".75" fill="#EDE4D3"/>
+      <rect x="7.5" y="14.25" width="8" height="1.5" rx=".75" fill="#EDE4D3"/>
+      <path fill="#E3643B" d="m16 18 3-3v3.5L16 20v-2Z"/>
+    </svg>
+    <span class="nm">notes</span>
+  </div>
+
+  <div class="cell">
+    <!-- share -->
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <path fill="none" stroke="#46617A" stroke-width="2" stroke-linecap="round" d="m7 12 10-6m-10 6 10 6"/>
+      <circle cx="6" cy="12" r="3" fill="#EDE4D3"/>
+      <circle cx="18" cy="5" r="3" fill="#EDE4D3"/>
+      <circle cx="18" cy="19" r="3" fill="#EDE4D3"/>
+      <circle cx="18" cy="5" r="1.25" fill="#E3643B"/>
+    </svg>
+    <span class="nm">share</span>
+  </div>
+
+  <div class="cell">
+    <!-- fullscreen -->
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <path fill="#EDE4D3" d="M4 3h6v2H6v4H4V3Zm10 0h6v6h-2V5h-4V3ZM4 15h2v4h4v2H4v-6Zm14 0h2v6h-6v-2h4v-4Z"/>
+    </svg>
+    <span class="nm">fullscreen</span>
+  </div>
+
+  <div class="cell">
+    <!-- zoom-in -->
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="10.5" cy="10.5" r="6.75" fill="none" stroke="#EDE4D3" stroke-width="2.25"/>
+      <path fill="#EDE4D3" d="m15.25 13.48 5.5 5.5-1.77 1.77-5.5-5.5 1.77-1.77Z"/>
+      <path fill="#E3643B" d="M9.5 6.75h2v2.75h2.75v2H11.5v2.75h-2V11.5H6.75v-2H9.5V6.75Z"/>
+    </svg>
+    <span class="nm">zoom-in</span>
+  </div>
+
+  <div class="cell">
+    <!-- zoom-out -->
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="10.5" cy="10.5" r="6.75" fill="none" stroke="#EDE4D3" stroke-width="2.25"/>
+      <path fill="#EDE4D3" d="m15.25 13.48 5.5 5.5-1.77 1.77-5.5-5.5 1.77-1.77Z"/>
+      <rect x="6.75" y="9.5" width="7.5" height="2" rx="1" fill="#46617A"/>
+    </svg>
+    <span class="nm">zoom-out</span>
+  </div>
+
+  <div class="cell">
+    <!-- gear -->
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <path fill="#EDE4D3" d="m9.65 2.75 1.1-.5h2.5l1.1.5.45 2.05 1.45.85 1.95-.65 1.75 1.75-.65 1.95.85 1.45 2.05.45v2.5l-2.05.45-.85 1.45.65 1.95-1.75 1.75-1.95-.65-1.45.85-.45 2.05-1.1.5h-2.5l-1.1-.5-.45-2.05-1.45-.85-1.95.65-1.75-1.75.65-1.95-.85-1.45-2.05-.45v-2.5l2.05-.45.85-1.45-.65-1.95L5.8 5l1.95.65 1.45-.85.45-2.05Z"/>
+      <circle cx="12" cy="12" r="4.25" fill="#46617A"/>
+      <circle cx="12" cy="12" r="2" fill="#E3643B"/>
+    </svg>
+    <span class="nm">gear</span>
+  </div>
+
+</div>
+</body>
+</html>

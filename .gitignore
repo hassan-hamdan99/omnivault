@@ -1,0 +1,32 @@
+# ── Segredos / credenciais ──────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+credentials/*
+!credentials/LEIA-ME.txt
+
+# ── Dados pessoais de runtime (gerados pela app) ────────────────────────
+# perfis, fotos, progresso, notas, listas, caminhos locais, capas e HQs baixadas
+cache/
+data/
+
+# ── Backups locais ──────────────────────────────────────────────────────
+backups/
+*.bak
+
+# ── Python ──────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+
+# ── IDE / ferramentas / sistema operativo ───────────────────────────────
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── Atalho Windows ──────────────────────────────────────────────────────
+*.lnk

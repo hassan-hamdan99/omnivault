@@ -1,0 +1,955 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="theme-color" content="#000">
+<title>Leitor — Omnivault</title>
+<link rel="stylesheet" href="/fonts/fonts.css">
+<style>
+:root{--accent:#E3643B;--accent-dim:#C9512D;--text:#F5F7FA;--dim:#7A8598;--bar:#171B22;--bd:#303A49}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:'Karla',sans-serif;touch-action:none}
+
+/* ── Stage ── */
+#stage{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;overflow:hidden}
+#zoom-wrap{position:relative;display:flex;align-items:center;justify-content:center;
+  gap:2px;width:100%;height:100%;transform-origin:center;will-change:transform}
+.pimg{display:block;max-width:100%;max-height:100%;width:auto;height:auto;
+  object-fit:contain;user-select:none;-webkit-user-drag:none;
+  transition:opacity .15s;will-change:opacity}
+.pimg.fading{opacity:0}
+#stage.double .pimg{max-width:50%}
+/* Deslize: a página vizinha (#peek-wrap) entra ao lado enquanto o dedo arrasta */
+#peek-wrap{position:absolute;inset:0;display:none;align-items:center;justify-content:center;
+  gap:2px;pointer-events:none;will-change:transform}
+#peek-wrap.on{display:flex}
+#peek-wrap .pimg{transition:none}
+
+/* ── Spinner ── */
+#spin{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:.75rem;color:var(--dim);font-size:.83rem;
+  z-index:10;pointer-events:none;transition:opacity .2s}
+#spin.off{opacity:0}
+.ring{width:34px;height:34px;border:2px solid #222;border-top-color:var(--accent);
+  border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── Top bar ── */
+#top{position:fixed;top:0;left:0;right:0;z-index:50;
+  background:rgba(0,0,0,.88);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  border-bottom:1px solid #1c1c1c;height:48px;display:flex;align-items:center;
+  padding:0 .75rem;padding-top:env(safe-area-inset-top);gap:.4rem;
+  transition:transform .25s,opacity .25s}
+#top.off{transform:translateY(-100%);opacity:0}
+.back{background:none;border:none;color:var(--dim);cursor:pointer;
+  display:flex;align-items:center;gap:.3rem;font-size:.82rem;font-family:'Karla',sans-serif;
+  padding:.35rem .5rem;border-radius:6px;transition:color .15s;flex-shrink:0}
+@media(hover:hover){.back:hover{color:var(--text)}}
+#top-title{flex:1;font-size:.78rem;color:var(--dim);overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap;text-align:center}
+.tbtn{background:none;border:1px solid #2a2a2a;color:var(--dim);cursor:pointer;
+  padding:.3rem .5rem;border-radius:6px;font-size:.75rem;transition:color .15s,border-color .15s;
+  font-family:'Karla',sans-serif;white-space:nowrap}
+/* Estado ativo ≠ hover: no iPad o :hover "gruda" após o toque e fazia os
+   toggles (manga/dupla) parecerem sempre marcados. Hover só onde há rato. */
+.tbtn.on{color:var(--accent);border-color:var(--accent-dim,#b89a30);background:rgba(227,100,59,.14)}
+@media(hover:hover){.tbtn:hover{color:var(--accent);border-color:var(--accent-dim,#b89a30)}}
+
+/* ── Bottom bar ── */
+#bot{position:fixed;bottom:0;left:0;right:0;z-index:50;
+  background:rgba(0,0,0,.88);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  border-top:1px solid #1c1c1c;padding:0 .75rem;
+  padding-bottom:env(safe-area-inset-bottom);
+  transition:transform .25s,opacity .25s}
+#bot.off{transform:translateY(100%);opacity:0}
+
+/* Progress row */
+.prog-row{display:flex;align-items:center;gap:.5rem;height:28px;padding-top:4px}
+/* Barra arrastável: a área de toque (#prog-hit) é bem maior que o traço fino */
+#prog-hit{flex:1;position:relative;align-self:stretch;display:flex;align-items:center;
+  cursor:pointer;touch-action:none;-webkit-user-select:none;user-select:none}
+#prog-track{flex:1;height:4px;background:#222;border-radius:2px;position:relative;
+  display:flex;transition:height .12s}
+#prog-fill{height:100%;background:var(--accent);border-radius:2px;pointer-events:none;transition:width .2s}
+#prog-thumb{position:absolute;top:50%;transform:translate(-50%,-50%);width:12px;height:12px;
+  border-radius:50%;background:var(--accent);pointer-events:none;transition:left .2s,transform .12s;
+  box-shadow:0 0 0 3px rgba(0,0,0,.45)}
+#prog-tip{position:absolute;bottom:calc(100% + 4px);left:0;transform:translateX(-50%);
+  background:var(--bar);border:1px solid var(--bd);color:var(--text);font-size:.78rem;font-weight:700;
+  padding:.28rem .55rem;border-radius:7px;white-space:nowrap;pointer-events:none;
+  opacity:0;transition:opacity .12s;font-variant-numeric:tabular-nums}
+#prog-hit.drag #prog-fill,#prog-hit.drag #prog-thumb{transition:none}
+#prog-hit.drag #prog-thumb{transform:translate(-50%,-50%) scale(1.4)}
+#prog-hit.drag #prog-tip{opacity:1}
+@media(hover:hover){#prog-hit:hover #prog-track{height:6px}}
+/* Modo mangá: a barra corre da direita p/ a esquerda, como a leitura */
+.prog-row.rtl{flex-direction:row-reverse}
+.prog-row.rtl #prog-track{flex-direction:row-reverse}
+.plabel{font-size:.7rem;color:var(--dim);white-space:nowrap}
+
+/* Brightness row */
+#bright-row{display:none;align-items:center;gap:.5rem;height:28px;padding-top:2px}
+#bright-row.on{display:flex}
+.blabel{font-size:.68rem;color:var(--dim);white-space:nowrap;flex-shrink:0}
+input[type=range]{flex:1;accent-color:var(--accent);height:4px;cursor:pointer}
+.blabel svg,.tbtn svg,.fp-btn svg{vertical-align:-.16em}
+.fp-btn{display:inline-flex;align-items:center;gap:.4rem}
+
+/* Nav row */
+.nav-row{display:flex;align-items:center;justify-content:center;gap:.4rem;
+  height:52px}
+.nvbtn{background:#1a1a1a;border:1px solid #2a2a2a;color:var(--text);cursor:pointer;
+  padding:.45rem .75rem;border-radius:7px;font-size:1rem;line-height:1;
+  transition:background .12s}
+@media(hover:hover){.nvbtn:hover:not(:disabled){background:#2a2a2a}}
+.nvbtn:disabled{opacity:.25;cursor:default}
+#page-ctr{font-size:.85rem;color:var(--text);min-width:72px;text-align:center}
+#page-ctr .tot{color:var(--dim)}
+
+/* ── Zoom indicator ── */
+#zoom-ind{position:fixed;top:56px;left:50%;transform:translateX(-50%);
+  background:rgba(0,0,0,.75);color:var(--accent);font-size:.75rem;font-weight:600;
+  padding:.25rem .65rem;border-radius:20px;pointer-events:none;
+  transition:opacity .3s;opacity:0;z-index:40}
+#zoom-ind.show{opacity:1}
+
+/* ── Indicador de página (transitório, não tapa a leitura) ── */
+#page-ind{position:fixed;bottom:calc(12px + env(safe-area-inset-bottom));left:50%;
+  transform:translateX(-50%);background:rgba(0,0,0,.72);color:var(--dim);
+  font-size:.72rem;padding:.22rem .65rem;border-radius:20px;pointer-events:none;
+  opacity:0;transition:opacity .25s;z-index:40}
+#page-ind.show{opacity:1}
+
+/* ── Estrelas no popup de fim ── */
+.fp-stars{display:flex;gap:.2rem;justify-content:center;margin-top:.9rem}
+.fp-star{background:none;border:none;font-size:1.7rem;line-height:1;color:#333;
+  cursor:pointer;padding:.05rem .15rem;transition:color .12s,transform .12s}
+.fp-star.on{color:#D9A44A}
+@media(hover:hover){.fp-star:hover{transform:scale(1.15)}}
+.fp-rate-lbl{font-size:.7rem;color:var(--dim);margin-top:.9rem}
+.fp-nxt{font-size:.72rem;color:var(--dim);margin-top:.7rem;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap}
+.fp-nxt b{color:var(--text);font-weight:600}
+
+/* ── Download overlay ── */
+#dl{position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(4px);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:1.25rem;z-index:100;color:var(--text);text-align:center;padding:2rem;transition:opacity .3s}
+#dl.off{opacity:0;pointer-events:none}
+.dlbar-w{width:220px;height:4px;background:#222;border-radius:2px;overflow:hidden}
+.dlbar{height:100%;background:var(--accent);border-radius:2px;
+  animation:dlp 1.5s ease-in-out infinite}
+@keyframes dlp{0%{width:0;margin-left:0}50%{width:60%;margin-left:20%}100%{width:0;margin-left:100%}}
+
+/* ── Finish popup ── */
+#fp{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;
+  align-items:center;justify-content:center;padding:1.5rem}
+#fp.on{display:flex}
+.fp-box{background:#1c1c1c;border:1px solid #2c2c2c;border-radius:14px;
+  padding:1.75rem;max-width:300px;width:100%;text-align:center}
+.fp-btns{display:flex;gap:.6rem;justify-content:center;flex-wrap:wrap;margin-top:1.25rem}
+.fp-btn{border:none;border-radius:8px;padding:.6rem 1.1rem;font-family:'Karla',sans-serif;
+  font-size:.88rem;font-weight:600;cursor:pointer;transition:opacity .15s;will-change:opacity}
+.fp-btn:hover{opacity:.85}
+.fp-yes{background:var(--accent);color:#111}
+.fp-no{background:#242424;color:var(--text);border:1px solid #333}
+
+/* ── Popup de fim: entrada suave + cartão do próximo capítulo ── */
+#fp.on{animation:fpfade .22s ease both}
+#fp.on .fp-box{animation:fpin .32s cubic-bezier(.2,.7,.3,1) both}
+@keyframes fpfade{from{opacity:0}}
+@keyframes fpin{from{opacity:0;transform:translateY(14px) scale(.96)}}
+.fp-nc{display:flex;gap:.7rem;align-items:center;text-align:left;margin-top:1rem;padding:.55rem;
+  background:#141414;border:1px solid #2a2a2a;border-radius:10px}
+.fp-nc img{width:40px;height:60px;object-fit:cover;border-radius:6px;flex-shrink:0;background:#222}
+.fp-nc span{display:block;font-size:.62rem;font-weight:700;letter-spacing:.14em;color:var(--accent);margin-bottom:.2rem}
+.fp-nc b{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+  font-size:.8rem;font-weight:600;color:var(--text);line-height:1.3}
+
+/* ── "Retomando da pág. X" (some sozinho; botão volta ao início) ── */
+#resume{position:fixed;left:50%;top:calc(60px + env(safe-area-inset-top));z-index:60;
+  transform:translate(-50%,-8px);opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;
+  display:flex;align-items:center;gap:.7rem;background:rgba(20,20,20,.92);border:1px solid #2c2c2c;
+  border-radius:24px;padding:.35rem .4rem .35rem .95rem;font-size:.8rem;color:var(--text);
+  box-shadow:0 8px 24px rgba(0,0,0,.5);white-space:nowrap}
+#resume.show{opacity:1;transform:translate(-50%,0);pointer-events:auto}
+#resume button{background:#2a2a2a;border:none;color:var(--text);border-radius:18px;cursor:pointer;
+  padding:.4rem .8rem;font-family:'Karla',sans-serif;font-size:.76rem;font-weight:600}
+@media(hover:hover){#resume button:hover{background:#363636}}
+@media(prefers-reduced-motion:reduce){#fp.on,#fp.on .fp-box{animation:none}}
+
+/* ── Toque (iPad/iPhone): alvos maiores nas barras ── */
+@media(pointer:coarse){
+  .tbtn{padding:.5rem .65rem;font-size:.85rem}
+  .back{padding:.5rem .6rem}
+  .nvbtn{padding:.6rem 1.1rem;font-size:1.1rem}
+  .prog-row{height:40px}
+  #prog-track{height:6px}
+  #prog-thumb{width:18px;height:18px}
+}
+</style>
+</head>
+<body>
+
+<div id="dl">
+  <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+  <div style="font-size:1rem;font-weight:600">Carregando...</div>
+  <div id="dl-name" style="font-size:.82rem;color:var(--dim);max-width:260px;line-height:1.5"></div>
+  <div class="dlbar-w"><div class="dlbar"></div></div>
+</div>
+
+<div id="zoom-ind">100%</div>
+<div id="page-ind">1 / —</div>
+<div id="resume" role="status"><span id="resume-t"></span><button type="button" onclick="resumeFromStart()">Do início</button></div>
+
+<div id="stage">
+  <div id="zoom-wrap">
+    <div id="spin"><div class="ring"></div><span>Carregando...</span></div>
+    <img id="img-a" class="pimg" src="" alt="" draggable="false">
+    <img id="img-b" class="pimg" src="" alt="" draggable="false" style="display:none">
+  </div>
+  <div id="peek-wrap" aria-hidden="true">
+    <img id="peek-a" class="pimg" alt="" draggable="false">
+    <img id="peek-b" class="pimg" alt="" draggable="false">
+  </div>
+</div>
+
+<!-- Top bar -->
+<div id="top">
+  <button class="back" onclick="goBack()">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+      <path d="m15 18-6-6 6-6"/></svg>Biblioteca
+  </button>
+  <span id="top-title">—</span>
+  <button id="btn-manga" class="tbtn" onclick="toggleManga()" title="Modo Manga (D→E)" aria-label="Modo manga (direita→esquerda)">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+  </button>
+  <button id="btn-double" class="tbtn" onclick="toggleDouble()" title="Dupla página (D)" aria-label="Página dupla">⧉</button>
+  <button id="btn-fs" class="tbtn" onclick="toggleFS()" title="Tela cheia (T)" aria-label="Tela cheia">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+  </button>
+  <button id="btn-bright" class="tbtn" onclick="toggleBright()" title="Brilho" aria-label="Brilho e contraste"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg></button>
+  <button id="btn-zoom-reset" class="tbtn" onclick="resetZoom()" title="Reset zoom (0)" aria-label="Repor zoom" style="display:none">⤢</button>
+</div>
+
+<!-- Bottom bar -->
+<div id="bot">
+  <div class="prog-row">
+    <span class="plabel" id="p-cur">1</span>
+    <div id="prog-hit" role="slider" aria-label="Página" aria-valuemin="1">
+      <div id="prog-track">
+        <div id="prog-fill" style="width:0%"></div>
+        <div id="prog-thumb" style="left:0%"></div>
+      </div>
+      <div id="prog-tip"></div>
+    </div>
+    <span class="plabel" id="p-tot">—</span>
+  </div>
+  <div id="bright-row">
+    <span class="blabel"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg></span>
+    <input type="range" id="brightness" min="30" max="200" value="100" oninput="applyFilters()">
+    <span class="blabel"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 0 0 20z" fill="currentColor"/></svg></span>
+    <input type="range" id="contrast" min="50" max="200" value="100" oninput="applyFilters()">
+  </div>
+  <div class="nav-row">
+    <button class="nvbtn" id="btn-prev" onclick="prevPage()" aria-label="Página anterior">‹</button>
+    <span id="page-ctr"><span id="p-n">—</span><span class="tot"> / —</span></span>
+    <button class="nvbtn" id="btn-next" onclick="nextPage()" aria-label="Próxima página">›</button>
+  </div>
+</div>
+
+<!-- Finish popup -->
+<div id="fp">
+  <div class="fp-box">
+    <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:.6rem"><circle cx="12" cy="8" r="6"/><polyline points="8.5 13.5 7 22 12 19 17 22 15.5 13.5"/></svg>
+    <div style="font-size:1rem;font-weight:600;color:var(--text);margin-bottom:.4rem">Fim da HQ!</div>
+    <div id="fp-title" style="font-size:.82rem;color:var(--dim)"></div>
+    <div class="fp-rate-lbl">Sua nota</div>
+    <div class="fp-stars" id="fp-stars"></div>
+    <div class="fp-nxt" id="fp-nxt" style="display:none"></div>
+    <div class="fp-btns">
+      <button class="fp-btn fp-yes" onclick="markFinished()"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Marcar como Lida</button>
+      <button class="fp-btn fp-yes" id="fp-next-btn" style="display:none" onclick="finishAndNext()"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="13 17 18 12 13 7"/><polyline points="6 17 11 12 6 7"/></svg>Lida → próximo</button>
+      <button class="fp-btn fp-no" onclick="closeFP()">Continuar</button>
+    </div>
+  </div>
+</div>
+
+<script src="/profile.js"></script>
+<script>
+// ── State ─────────────────────────────────────────────────────────────────────
+let comic=null,totalPages=0,currentPage=0;
+let doubleMode=false,mangaMode=false,barsOn=true,brightOn=false;
+let hideTimer=null;
+const pageCache=new Map();
+
+// ── Zoom state ────────────────────────────────────────────────────────────────
+let zoom=1,panX=0,panY=0,isZoomed=false;
+let dragActive=false,dragStartX=0,dragStartY=0,dragPanX=0,dragPanY=0;
+let pinchActive=false,pinchStartDist=0,pinchStartZoom=1;
+let zoomTimer=null;
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+async function init(){
+  const stored=localStorage.getItem('cs_current');
+  if(!stored||!curProfile){window.location.href='/';return}
+  comic=JSON.parse(stored);
+
+  const title=comic.name.replace(/\.[^.]+$/,'');
+  document.title=title+' — Omnivault';
+  document.getElementById('top-title').textContent=title;
+  document.getElementById('dl-name').textContent=`"${title}" — o primeiro acesso baixa do Drive.`;
+
+  // Restore prefs
+  mangaMode=localStorage.getItem('cs_manga')==='1';
+  doubleMode=localStorage.getItem('cs_double')==='1';
+  document.getElementById('btn-manga').classList.toggle('on',mangaMode);
+  document.getElementById('btn-double').classList.toggle('on',doubleMode);
+  document.getElementById('stage').classList.toggle('double',doubleMode);
+
+  showDL(true);
+  let serverPage=0;
+  try{
+    const info=await fetch(`/api/comics/${comic.id}/info`).then(r=>r.json());
+    totalPages=info.pages;
+    serverPage=parseInt(info.saved_page)||0;
+  }catch(e){console.error(e)}
+  showDL(false);
+  // Offline sem download: o info não veio nem da rede nem do cache.
+  if(!totalPages){
+    document.getElementById('spin').querySelector('span').textContent=
+      'Sem conexão com o servidor — esta HQ não está baixada neste aparelho.';
+    return;
+  }
+
+  // Retoma da posição mais avançada entre este dispositivo e o servidor,
+  // garantindo sincronização de página exacta entre PC e iPhone.
+  const localPage=parseInt(localStorage.getItem(posKey()))||0;
+  const saved=Math.max(localPage,serverPage);
+  currentPage=Math.min(saved,Math.max(0,totalPages-1));
+
+  // Restaura brilho/contraste guardados
+  restoreFilters();
+
+  showPage(currentPage);
+  schedHide();
+  if(currentPage>0)showResume(currentPage);
+  findNext();   // resolve o próximo capítulo em segundo plano (para o popup de fim)
+}
+
+// ── Page loading ──────────────────────────────────────────────────────────────
+function preload(n){
+  if(n<0||n>=totalPages||pageCache.has(n))return;
+  pageCache.set(n,null);
+  fetch(`/api/comics/${comic.id}/page/${n}`)
+    .then(r=>r.blob()).then(b=>pageCache.set(n,URL.createObjectURL(b)))
+    .catch(()=>pageCache.delete(n));
+}
+
+function showPage(n,instant){
+  if(n<0||n>=totalPages)return;
+  currentPage=n;
+  const imgA=document.getElementById('img-a'),imgB=document.getElementById('img-b');
+  const spin=document.getElementById('spin');
+  // instant: a página já foi posta na tela pelo deslize — sem fade nem spinner
+  if(!instant){imgA.classList.add('fading');spin.classList.remove('off');}
+
+  const srcA=pageCache.get(n)||(pageCache.get(n)===null?null:`/api/comics/${comic.id}/page/${n}`);
+  const url=srcA||`/api/comics/${comic.id}/page/${n}`;
+
+  const L=new Image();
+  L.onload=()=>{
+    imgA.src=url;imgA.classList.remove('fading');spin.classList.add('off');
+    if(doubleMode&&n+1<totalPages){
+      const cachedB=pageCache.get(n+1);
+      const srcB=(cachedB&&cachedB!==null)?cachedB:`/api/comics/${comic.id}/page/${n+1}`;
+      imgB.style.display='block';
+      if(imgB.getAttribute('data-src')!==srcB){
+        imgB.style.opacity='0';
+        imgB.removeAttribute('data-src');
+        const LB=new Image();
+        LB.onload=()=>{imgB.src=srcB;imgB.setAttribute('data-src',srcB);
+          imgB.style.transition='opacity 0.15s';imgB.style.opacity='1';};
+        LB.onerror=()=>{imgB.style.opacity='0.3'};
+        LB.src=srcB;
+      }
+    } else {imgB.style.display='none';imgB.removeAttribute('data-src')}
+    updateUI();
+    flashPageInd();
+    saveProgress(n);
+    for(let i=1;i<=4;i++)preload(n+i);preload(n-1);
+    pageCache.forEach((url,k)=>{if(url&&Math.abs(k-n)>8){URL.revokeObjectURL(url);pageCache.delete(k)}});
+  };
+  L.onerror=()=>{imgA.classList.remove('fading');spin.classList.remove('off');spin.querySelector('span').textContent='Erro ao carregar página';};
+  L.src=url;
+}
+
+// ── Sincronização offline ─────────────────────────────────────────────────────
+// Sem servidor (leitura fora de casa), progresso/nota/lida entram numa fila
+// local que o index.html despacha no próximo boot online. Atenção: com o
+// service worker, um POST offline devolve 503 em vez de lançar — por isso
+// o teste é sempre r.ok, não só o catch.
+function qSync(url,body,dedupeById){
+  let q=[];try{q=JSON.parse(localStorage.getItem('cs_syncq')||'[]')}catch{}
+  if(dedupeById)q=q.filter(it=>!(it.url===url&&it.p===curProfile&&it.body.file_id===body.file_id));
+  q.push({url,body,p:curProfile});   // p: o envio posterior vai para ESTE perfil
+  localStorage.setItem('cs_syncq',JSON.stringify(q.slice(-300)));
+}
+function postSync(url,body,dedupeById){
+  return fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(body)})
+    .then(r=>{if(!r.ok)qSync(url,body,dedupeById);return r.ok;})
+    .catch(()=>{qSync(url,body,dedupeById);return false;});
+}
+
+// Posição local por perfil (fallback offline; o servidor guarda a oficial)
+const posKey=()=>'cs_pos_'+curProfile+'_'+comic.id;
+function saveProgress(n){
+  localStorage.setItem(posKey(),n);
+  clearTimeout(window._pt);
+  window._pt=setTimeout(()=>postSync('/api/reading/progress',
+    {file_id:comic.id,name:comic.name,page:n,pages:totalPages},true),1500);
+}
+
+function updateUI(){
+  const step=doubleMode?2:1;
+  document.getElementById('p-n').textContent=currentPage+1;
+  document.querySelector('#page-ctr .tot').textContent=` / ${totalPages}`;
+  document.getElementById('p-cur').textContent=currentPage+1;
+  document.getElementById('p-tot').textContent=totalPages;
+  document.getElementById('btn-prev').disabled=currentPage===0;
+  document.getElementById('btn-next').disabled=currentPage>=totalPages-step;
+  document.querySelector('.prog-row').classList.toggle('rtl',mangaMode);
+  setProg(currentPage);
+}
+function setProg(n){
+  const pct=totalPages>1?(n/(totalPages-1))*100:0;
+  document.getElementById('prog-fill').style.width=pct+'%';
+  document.getElementById('prog-thumb').style.left=(mangaMode?100-pct:pct)+'%';
+  const hit=document.getElementById('prog-hit');
+  hit.setAttribute('aria-valuemax',totalPages);hit.setAttribute('aria-valuenow',n+1);
+}
+
+// ── Navigation ────────────────────────────────────────────────────────────────
+// Virar página NÃO mostra as barras (tapavam a página — feedback da leitura).
+// Elas aparecem só por ação explícita: toque no centro ou tecla F.
+function nextPage(){
+  if(zoom>1){return}
+  const step=doubleMode?2:1;
+  if(currentPage+step<totalPages){showPage(currentPage+step)}
+  else showFP();
+}
+function prevPage(){
+  if(zoom>1){return}
+  const step=doubleMode?2:1;
+  if(currentPage-step>=0)showPage(currentPage-step);
+}
+function goBack(){window.location.href='/'}
+
+// ── Barra de progresso: tocar ou arrastar para buscar ─────────────────────────
+// Arrastar só move o indicador (balão com o nº da página); a página carrega UMA
+// vez, ao soltar — carregar cada página do caminho travaria o leitor. Enquanto
+// arrasta, as barras não se escondem sozinhas.
+let seekTarget=-1;
+const progHit=document.getElementById('prog-hit');
+function pageAt(clientX){
+  const r=document.getElementById('prog-track').getBoundingClientRect();
+  let pct=Math.max(0,Math.min(1,(clientX-r.left)/r.width));
+  if(mangaMode)pct=1-pct;
+  return Math.round(pct*(totalPages-1));
+}
+function scrubTo(n){
+  seekTarget=n;setProg(n);
+  document.getElementById('p-cur').textContent=n+1;
+  document.getElementById('p-n').textContent=n+1;
+  const tip=document.getElementById('prog-tip'),tr=document.getElementById('prog-track');
+  tip.textContent=`${n+1} / ${totalPages}`;
+  // balão acompanha a bolinha, mas sem sair da tela nas pontas
+  const r=tr.getBoundingClientRect(),pct=totalPages>1?n/(totalPages-1):0;
+  const x=(mangaMode?1-pct:pct)*r.width,half=tip.offsetWidth/2;
+  tip.style.left=Math.max(half+8-r.left,Math.min(r.width+(innerWidth-r.right)-half-8,x))+'px';
+}
+progHit.addEventListener('pointerdown',e=>{
+  if(!totalPages||e.button>0)return;
+  e.preventDefault();progHit.setPointerCapture(e.pointerId);
+  progHit.classList.add('drag');clearTimeout(hideTimer);
+  scrubTo(pageAt(e.clientX));
+});
+progHit.addEventListener('pointermove',e=>{
+  if(progHit.classList.contains('drag'))scrubTo(pageAt(e.clientX));
+});
+function endSeek(commit){
+  if(!progHit.classList.contains('drag'))return;
+  progHit.classList.remove('drag');schedHide();
+  const n=seekTarget;seekTarget=-1;
+  if(commit&&n>=0&&n!==currentPage)showPage(n);
+  else updateUI();                       // cancelado: volta ao indicador da página atual
+}
+progHit.addEventListener('pointerup',e=>{
+  if(progHit.classList.contains('drag'))scrubTo(pageAt(e.clientX));   // posição exata ao soltar
+  endSeek(true);
+});
+progHit.addEventListener('pointercancel',()=>endSeek(false));
+// Qualquer toque nas barras reinicia o tempo para elas se esconderem.
+['top','bot'].forEach(id=>document.getElementById(id).addEventListener('pointerdown',()=>{
+  if(barsOn&&!progHit.classList.contains('drag'))schedHide();
+}));
+
+// ── Indicador de página (aparece só quando as barras estão escondidas) ────────
+let pageIndTimer=null;
+function flashPageInd(){
+  if(barsOn)return;                      // barra inferior já mostra a posição
+  const el=document.getElementById('page-ind');
+  el.textContent=`${currentPage+1} / ${totalPages}`;
+  el.classList.add('show');
+  clearTimeout(pageIndTimer);
+  pageIndTimer=setTimeout(()=>el.classList.remove('show'),900);
+}
+
+// ── Próximo capítulo ──────────────────────────────────────────────────────────
+// Resolve o arquivo seguinte na MESMA pasta (comic.parent), na mesma ordenação
+// natural da biblioteca ("Cap 2" antes de "Cap 10"). Qualquer falha (sem
+// parent, Drive desconectado, offline sem cache) só esconde o botão — o
+// popup de fim continua exatamente como era.
+let nextComic=null;
+async function findNext(){
+  nextComic=null;
+  try{
+    const p=comic.parent;
+    if(!p)return;
+    const isLoc=p.startsWith('/')||(p.length>2&&p[1]===':');
+    const r=await fetch(isLoc
+      ?`/api/local/items?path=${encodeURIComponent(p)}`
+      :`/api/items?folder_id=${encodeURIComponent(p)}`);
+    if(!r.ok)return;
+    const d=await r.json();
+    const coll=new Intl.Collator(undefined,{numeric:true,sensitivity:'base'});
+    const comics=(d.comics||[]).slice().sort((a,b)=>coll.compare(a.name||'',b.name||''));
+    const i=comics.findIndex(c=>c.id===comic.id);
+    if(i>=0&&i+1<comics.length)nextComic=comics[i+1];
+  }catch(e){console.warn('[next]',e)}
+}
+async function finishAndNext(){
+  if(!nextComic)return;
+  await postSync('/api/reading/finish',{file_id:comic.id,name:comic.name});
+  localStorage.setItem('cs_current',JSON.stringify(
+    {id:nextComic.id,name:nextComic.name,parent:comic.parent,p:curProfile}));
+  closeFP();
+  window.location.reload();
+}
+
+// ── Aviso de retomada ─────────────────────────────────────────────────────────
+let resumeTimer=null;
+function showResume(n){
+  const el=document.getElementById('resume');
+  document.getElementById('resume-t').textContent=`Retomando da pág. ${n+1}`;
+  el.classList.add('show');
+  clearTimeout(resumeTimer);resumeTimer=setTimeout(()=>el.classList.remove('show'),4500);
+}
+function resumeFromStart(){
+  clearTimeout(resumeTimer);document.getElementById('resume').classList.remove('show');
+  showPage(0);
+}
+
+// ── Finish popup ──────────────────────────────────────────────────────────────
+let fpStars=0;
+function renderFpStars(){
+  document.getElementById('fp-stars').innerHTML=[1,2,3,4,5].map(i=>
+    `<button class="fp-star${i<=fpStars?' on':''}" onclick="rateFP(${i})" aria-label="${i} estrela${i>1?'s':''}">★</button>`).join('');
+}
+async function rateFP(v){
+  fpStars=v;renderFpStars();
+  await postSync('/api/reading/rate',
+    {file_id:comic.id,name:comic.name,stars:v,parent:comic.parent||null},true);
+}
+function showFP(){
+  document.getElementById('fp-title').textContent=comic.name.replace(/\.[^.]+$/,'');
+  const nn=document.getElementById('fp-nxt');
+  document.getElementById('fp-next-btn').style.display=nextComic?'inline-flex':'none';
+  if(nextComic){
+    nn.style.display='block';
+    nn.className='fp-nc';
+    nn.innerHTML=`<img alt="" src="/api/comics/${encodeURIComponent(nextComic.id)}/cover" onerror="this.style.visibility='hidden'"><div><span>A SEGUIR</span><b></b></div>`;
+    nn.querySelector('b').textContent=nextComic.name.replace(/\.[^.]+$/,'');
+  }else nn.style.display='none';
+  fpStars=0;renderFpStars();
+  // mostra a nota já existente, se houver
+  fetch('/api/reading/state').then(r=>r.json()).then(s=>{
+    const r=(s.ratings||{})[comic.id];
+    if(r&&r.stars){fpStars=r.stars;renderFpStars();}
+  }).catch(()=>{});
+  document.getElementById('fp').classList.add('on');
+}
+function closeFP(){document.getElementById('fp').classList.remove('on')}
+async function markFinished(){
+  await postSync('/api/reading/finish',{file_id:comic.id,name:comic.name});
+  closeFP();window.location.href='/';
+}
+
+// ── Zoom ──────────────────────────────────────────────────────────────────────
+function setZoom(z,cx,cy){
+  const prev=zoom;
+  zoom=Math.max(1,Math.min(5,z));
+  isZoomed=zoom>1;
+  document.getElementById('btn-zoom-reset').style.display=isZoomed?'block':'none';
+
+  if(!isZoomed){panX=0;panY=0;}
+  else if(cx!==undefined&&cy!==undefined){
+    // Zoom towards cursor/pinch center
+    const scale=zoom/prev;
+    const w=window.innerWidth,h=window.innerHeight;
+    panX=(panX-(cx-w/2))*(scale-1)+panX;
+    panY=(panY-(cy-h/2))*(scale-1)+panY;
+  }
+  clampPan();applyTransform();showZoomInd();
+}
+
+function clampPan(){
+  if(zoom<=1){panX=0;panY=0;return}
+  const maxX=(zoom-1)*window.innerWidth/2;
+  const maxY=(zoom-1)*window.innerHeight/2;
+  panX=Math.max(-maxX,Math.min(maxX,panX));
+  panY=Math.max(-maxY,Math.min(maxY,panY));
+}
+
+function applyTransform(){
+  document.getElementById('zoom-wrap').style.transform=
+    `translate(${panX}px,${panY}px) scale(${zoom})`;
+}
+
+function resetZoom(){setZoom(1)}
+
+function showZoomInd(){
+  const el=document.getElementById('zoom-ind');
+  el.textContent=Math.round(zoom*100)+'%';
+  el.classList.add('show');
+  clearTimeout(zoomTimer);
+  zoomTimer=setTimeout(()=>el.classList.remove('show'),1200);
+}
+
+// ── Zoom — mouse wheel ────────────────────────────────────────────────────────
+document.getElementById('stage').addEventListener('wheel',e=>{
+  e.preventDefault();
+  const delta=e.deltaY<0?1.12:0.88;
+  setZoom(zoom*delta,e.clientX,e.clientY);
+},{passive:false});
+
+// ── Zoom — duplo clique + navegação por clique (desktop) ──────────────────────
+let lastTap=0,_clickT=null,_dragMoved=false,_lastTouch=0;
+document.getElementById('stage').addEventListener('dblclick',e=>{
+  clearTimeout(_clickT);                 // cancela a navegação do clique simples
+  if(zoom>1)resetZoom();
+  else setZoom(2.5,e.clientX,e.clientY);
+});
+// Clique simples do rato: zonas — esquerda=anterior, direita=seguinte, centro=barras.
+// Resolve o "travado" no desktop: navegar com as barras escondidas e sair do zoom.
+document.getElementById('stage').addEventListener('click',e=>{
+  if(Date.now()-_lastTouch<700)return;   // ignora o click sintético do toque
+  if(_dragMoved){_dragMoved=false;return;} // foi um arrasto/pan, não um clique
+  clearTimeout(_clickT);
+  const x=e.clientX;
+  _clickT=setTimeout(()=>{
+    if(zoom>1){toggleBars();return;}      // com zoom: mostra barras (acede ao reset)
+    const w=window.innerWidth;
+    if(x<w*0.3) mangaMode?nextPage():prevPage();
+    else if(x>w*0.7) mangaMode?prevPage():nextPage();
+    else toggleBars();
+  },240);
+});
+
+// ── Drag to pan ───────────────────────────────────────────────────────────────
+document.getElementById('stage').addEventListener('mousedown',e=>{
+  _dragMoved=false;
+  if(!isZoomed)return;
+  dragActive=true;dragStartX=e.clientX;dragStartY=e.clientY;
+  dragPanX=panX;dragPanY=panY;
+  document.getElementById('zoom-wrap').style.cursor='grabbing';
+  e.preventDefault();
+});
+document.addEventListener('mousemove',e=>{
+  if(!dragActive)return;
+  if(Math.abs(e.clientX-dragStartX)>4||Math.abs(e.clientY-dragStartY)>4)_dragMoved=true;
+  panX=dragPanX+(e.clientX-dragStartX);
+  panY=dragPanY+(e.clientY-dragStartY);
+  clampPan();applyTransform();
+});
+document.addEventListener('mouseup',()=>{
+  dragActive=false;
+  document.getElementById('zoom-wrap').style.cursor=isZoomed?'grab':'default';
+});
+
+// ── Touch: pinch + swipe ──────────────────────────────────────────────────────
+let t0={x:0,y:0},t1={x:0,y:0},touchCount=0;
+
+// ── Deslize de página (toque) ─────────────────────────────────────────────────
+// A página acompanha o dedo e a vizinha entra ao lado (#peek-wrap, das blobs
+// já pré-carregadas). Ao soltar: passou de 25% da largura ou foi um gesto
+// rápido → completa a troca; senão volta. Sem vizinha (1ª/última) há
+// resistência elástica; na última, puxar para a frente abre o popup de fim.
+const SLIDE_MS=220;
+let swipe=null;   // {on, dx, w, off, t0ms, target, valid}
+const pageSrc=n=>pageCache.get(n)||`/api/comics/${comic.id}/page/${n}`;
+function swipeTarget(dx){
+  const step=doubleMode?2:1;
+  const fwd=(dx<0)!==mangaMode;          // arrastar p/ a esquerda = avançar (mangá: voltar)
+  return currentPage+(fwd?step:-step);
+}
+function setPeek(t){
+  const pa=document.getElementById('peek-a'),pb=document.getElementById('peek-b');
+  const sa=pageSrc(t);
+  if(pa.dataset.src!==sa){pa.dataset.src=sa;pa.src=sa;}
+  if(doubleMode&&t+1<totalPages){
+    const sb=pageSrc(t+1);
+    if(pb.dataset.src!==sb){pb.dataset.src=sb;pb.src=sb;}
+    pb.style.display='block';
+  }else{pb.style.display='none';pb.dataset.src='';}
+}
+// zx = deslocamento da página atual; px = da vizinha
+function placeSwipe(zx,px,anim){
+  const zw=document.getElementById('zoom-wrap'),pw=document.getElementById('peek-wrap');
+  const tr=anim?`transform ${SLIDE_MS}ms cubic-bezier(.2,.7,.3,1)`:'none';
+  zw.style.transition=tr;pw.style.transition=tr;
+  zw.style.transform=`translateX(${zx}px)`;
+  pw.style.transform=`translateX(${px}px)`;
+}
+// Distância da vizinha: colada à borda da página atual (página em pé no iPad
+// deitado não deixa um vão preto de meia tela), no máximo uma tela.
+function peekOffset(){
+  const a=document.getElementById('img-a').getBoundingClientRect();
+  const b=document.getElementById('img-b');
+  let w=a.width;
+  if(b.style.display!=='none')w+=b.getBoundingClientRect().width+2;
+  return Math.min(window.innerWidth+16,(w||window.innerWidth)+24);
+}
+function swipeMove(x){
+  let dx=x-t0.x;
+  const t=swipeTarget(dx);
+  swipe.target=t;swipe.valid=t>=0&&t<totalPages;
+  if(swipe.valid){setPeek(t);document.getElementById('peek-wrap').classList.add('on');}
+  else{dx*=0.3;document.getElementById('peek-wrap').classList.remove('on');}
+  swipe.dx=dx;placeSwipe(dx,dx+(dx<0?swipe.off:-swipe.off),false);
+  // amostras dos últimos ~100ms: velocidade do FIM do gesto (flick)
+  const now=Date.now();swipe.pts.push({x,t:now});
+  while(swipe.pts.length>2&&now-swipe.pts[0].t>100)swipe.pts.shift();
+}
+function swipeEnd(x){
+  const s=swipe;swipe=null;
+  const dx=s.dx,p0=s.pts[0];
+  const v=Math.abs(x-p0.x)/Math.max(1,Date.now()-p0.t);   // px/ms no fim do gesto
+  const pass=Math.abs(dx)>s.w*0.25||(v>0.35&&Math.abs(dx)>30);
+  const zw=document.getElementById('zoom-wrap'),pw=document.getElementById('peek-wrap');
+  const reset=()=>{zw.style.transition='none';zw.style.transform='';
+    pw.style.transition='none';pw.style.transform='';pw.classList.remove('on');};
+  swipe={w:s.w};                          // bloqueia novo deslize durante a animação
+  const sg=dx<0?-1:1;
+  if(pass&&s.valid){
+    placeSwipe(sg*s.w,0,true);            // completa: página atual sai, vizinha encaixa
+    try{navigator.vibrate&&navigator.vibrate(8)}catch{}
+    setTimeout(()=>{
+      swipe=null;
+      const imgA=document.getElementById('img-a'),imgB=document.getElementById('img-b');
+      const pa=document.getElementById('peek-a'),pb=document.getElementById('peek-b');
+      const ready=pa.complete&&pa.naturalWidth>0;
+      // a vizinha vira a página principal sem piscar (mesma URL/blob)
+      imgA.src=pa.dataset.src;
+      if(pb.style.display!=='none'){imgB.src=pb.dataset.src;imgB.setAttribute('data-src',pb.dataset.src);
+        imgB.style.opacity='1';imgB.style.display='block';}
+      reset();
+      showPage(s.target,ready);
+    },SLIDE_MS);
+  }else{
+    placeSwipe(0,-sg*s.off,true);         // volta (vizinha recua para o lado de onde veio)
+    setTimeout(()=>{swipe=null;reset();},SLIDE_MS);
+    if(pass&&!s.valid&&swipeTarget(dx)>=totalPages)nextPage();   // última página → popup de fim
+  }
+}
+
+document.getElementById('stage').addEventListener('touchstart',e=>{
+  _lastTouch=Date.now();
+  touchCount=e.touches.length;
+  if(touchCount===1){
+    const t=e.touches[0];t0={x:t.clientX,y:t.clientY};
+    if(isZoomed){dragActive=true;dragStartX=t.clientX;dragStartY=t.clientY;dragPanX=panX;dragPanY=panY}
+    else if(!swipe){const now=Date.now();
+      // pts começa com o ponto do toque: flick rápido pode ter só 1–2 movimentos
+      swipe={on:false,dx:0,w:window.innerWidth+16,off:peekOffset(),t0ms:now,pts:[{x:t.clientX,t:now}]};}
+  }
+  else if(swipe&&swipe.t0ms){            // 2º dedo = pinça: cancela o deslize
+    if(swipe.on){swipe.dx=0;swipeEnd(t0.x);}else swipe=null;
+  }
+  if(touchCount===2){
+    pinchActive=true;dragActive=false;
+    pinchStartDist=Math.hypot(
+      e.touches[1].clientX-e.touches[0].clientX,
+      e.touches[1].clientY-e.touches[0].clientY);
+    pinchStartZoom=zoom;
+    // Pinch center
+    t1={x:(e.touches[0].clientX+e.touches[1].clientX)/2,
+        y:(e.touches[0].clientY+e.touches[1].clientY)/2};
+  }
+},{passive:true});
+
+document.getElementById('stage').addEventListener('touchmove',e=>{
+  if(pinchActive&&e.touches.length===2){
+    const d=Math.hypot(e.touches[1].clientX-e.touches[0].clientX,
+                       e.touches[1].clientY-e.touches[0].clientY);
+    const cx=(e.touches[0].clientX+e.touches[1].clientX)/2;
+    const cy=(e.touches[0].clientY+e.touches[1].clientY)/2;
+    setZoom(pinchStartZoom*(d/pinchStartDist),cx,cy);
+  } else if(swipe&&swipe.w&&!isZoomed&&e.touches.length===1&&swipe.t0ms){
+    const t=e.touches[0],dx=t.clientX-t0.x,dy=t.clientY-t0.y;
+    if(!swipe.on){
+      if(Math.abs(dx)>10&&Math.abs(dx)>Math.abs(dy))swipe.on=true;   // horizontal: deslize
+      else if(Math.abs(dy)>10){swipe=null;return;}                   // vertical: ignora
+    }
+    if(swipe.on)swipeMove(t.clientX);
+  } else if(dragActive&&isZoomed&&e.touches.length===1){
+    const t=e.touches[0];
+    panX=dragPanX+(t.clientX-dragStartX);
+    panY=dragPanY+(t.clientY-dragStartY);
+    clampPan();applyTransform();
+  }
+},{passive:true});
+
+document.getElementById('stage').addEventListener('touchend',e=>{
+  _lastTouch=Date.now();
+  if(pinchActive){pinchActive=false;if(swipe&&swipe.t0ms)swipe=null;return}
+  dragActive=false;
+
+  const t=e.changedTouches[0];
+  if(swipe&&swipe.t0ms){
+    if(swipe.on){swipeEnd(t.clientX);return;}
+    swipe=null;                           // não deslizou: segue como toque
+  }
+  const dx=t.clientX-t0.x,dy=t.clientY-t0.y;
+  const now=Date.now();
+
+  // Double tap = toggle zoom
+  if(Math.abs(dx)<15&&Math.abs(dy)<15){
+    if(now-lastTap<300){
+      if(zoom>1)resetZoom();else setZoom(2.5,t.clientX,t.clientY);
+    }
+    lastTap=now;
+  }
+
+  if(isZoomed)return; // No swipe nav when zoomed
+
+  // (o deslize horizontal é tratado acima, por swipeEnd)
+  if(Math.abs(dx)<20&&Math.abs(dy)<20){
+    // Tap navigation: left third = prev, right third = next, center = bars
+    const x=t.clientX,w=window.innerWidth;
+    if(x<w*0.3){mangaMode?nextPage():prevPage();}
+    else if(x>w*0.7){mangaMode?prevPage():nextPage();}
+    else{toggleBars();}
+  }
+},{passive:true});
+
+// ── Bars ──────────────────────────────────────────────────────────────────────
+function toggleBars(){
+  barsOn=!barsOn;
+  document.getElementById('top').classList.toggle('off',!barsOn);
+  document.getElementById('bot').classList.toggle('off',!barsOn);
+  if(barsOn)schedHide();
+}
+function showBarsBriefly(){
+  document.getElementById('top').classList.remove('off');
+  document.getElementById('bot').classList.remove('off');
+  barsOn=true;schedHide();
+}
+function schedHide(){
+  clearTimeout(hideTimer);
+  hideTimer=setTimeout(()=>{
+    document.getElementById('top').classList.add('off');
+    document.getElementById('bot').classList.add('off');
+    barsOn=false;
+  },5000);
+}
+
+// ── Tela cheia ────────────────────────────────────────────────────────────────
+// Cobre o navegador inteiro. Comportamento das barras não muda: continuam a
+// aparecer só no toque/clique no centro. iPhone não tem Fullscreen API
+// (só o iPad) — nesse caso o botão é escondido.
+function fsEl(){return document.fullscreenElement||document.webkitFullscreenElement||null}
+function toggleFS(){
+  if(fsEl()){
+    (document.exitFullscreen||document.webkitExitFullscreen).call(document);
+  }else{
+    const d=document.documentElement;
+    const f=d.requestFullscreen||d.webkitRequestFullscreen;
+    if(f)try{f.call(d)}catch(e){console.error(e)}
+  }
+}
+['fullscreenchange','webkitfullscreenchange'].forEach(ev=>
+  document.addEventListener(ev,()=>
+    document.getElementById('btn-fs').classList.toggle('on',!!fsEl())));
+if(!(document.documentElement.requestFullscreen||document.documentElement.webkitRequestFullscreen))
+  document.getElementById('btn-fs').style.display='none';
+
+// ── Mode toggles ──────────────────────────────────────────────────────────────
+function toggleDouble(){
+  doubleMode=!doubleMode;
+  localStorage.setItem('cs_double',doubleMode?'1':'0');
+  document.getElementById('btn-double').classList.toggle('on',doubleMode);
+  document.getElementById('stage').classList.toggle('double',doubleMode);
+  showPage(currentPage);
+}
+function toggleManga(){
+  mangaMode=!mangaMode;
+  localStorage.setItem('cs_manga',mangaMode?'1':'0');
+  document.getElementById('btn-manga').classList.toggle('on',mangaMode);
+  if(totalPages)updateUI();              // inverte a direção da barra
+  showBarsBriefly();
+}
+function toggleBright(){
+  brightOn=!brightOn;
+  document.getElementById('btn-bright').classList.toggle('on',brightOn);
+  document.getElementById('bright-row').classList.toggle('on',brightOn);
+}
+function applyFilters(){
+  const b=document.getElementById('brightness').value;
+  const c=document.getElementById('contrast').value;
+  document.getElementById('zoom-wrap').style.filter=`brightness(${b}%) contrast(${c}%)`;
+  localStorage.setItem('cs_bright',b);
+  localStorage.setItem('cs_contrast',c);
+}
+function restoreFilters(){
+  const b=localStorage.getItem('cs_bright');
+  const c=localStorage.getItem('cs_contrast');
+  if(b===null&&c===null)return;
+  if(b!==null)document.getElementById('brightness').value=b;
+  if(c!==null)document.getElementById('contrast').value=c;
+  applyFilters();
+}
+
+// ── DL overlay ────────────────────────────────────────────────────────────────
+function showDL(v){document.getElementById('dl').classList.toggle('off',!v)}
+
+// ── Keyboard ──────────────────────────────────────────────────────────────────
+document.addEventListener('keydown',e=>{
+  if(document.getElementById('fp').classList.contains('on'))return;
+  switch(e.key){
+    case 'ArrowRight':e.preventDefault();mangaMode?prevPage():nextPage();break;
+    case 'ArrowLeft':e.preventDefault();mangaMode?nextPage():prevPage();break;
+    case 'ArrowDown':case ' ':e.preventDefault();nextPage();break;
+    case 'ArrowUp':e.preventDefault();prevPage();break;
+    case 'Escape':goBack();break;
+    case 'd':case 'D':toggleDouble();break;
+    case 'm':case 'M':toggleManga();break;
+    case 'b':case 'B':toggleBright();break;
+    case '+':case '=':setZoom(zoom*1.2);break;
+    case '-':setZoom(zoom/1.2);break;
+    case '0':resetZoom();break;
+    case 'f':case 'F':toggleBars();break;
+    case 't':case 'T':toggleFS();break;
+  }
+});
+
+init();
+</script>
+</body>
+</html>
